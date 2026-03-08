@@ -15,8 +15,11 @@ from core import (
     fetch_weather, rain_advisory,
 )
 from datetime import datetime, timedelta
+import pyotp, qrcode, io, base64
+from flask import session
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "cocotrack-dev-secret-123")
 
 # ─── Fertilizer master catalogue ─────────────────────────────────────────────
 # key → label, how often to reapply, buying unit, default price
@@ -59,6 +62,74 @@ def _ensure_keys(data):
 @app.route("/")
 def index():
     return render_template("index.html")
+
+# ─── Auth ────────────────────────────────────────────────────────────────────
+@app.before_request
+def check_auth():
+    # Public paths
+    if request.path == "/" or request.path.startswith("/api/auth/"):
+        return
+    # Check if setup is needed
+    data = load_data()
+    if not data.get("totp_secret"):
+        if request.path == "/api/auth/setup": return
+        return err("Setup required", 401)
+    # Check session
+    if not session.get("authenticated"):
+        return err("Auth required", 401)
+
+@app.route("/api/auth/status")
+def auth_status():
+    data = load_data()
+    return ok({
+        "setup_required": not bool(data.get("totp_secret")),
+        "authenticated": bool(session.get("authenticated"))
+    })
+
+@app.route("/api/auth/setup", methods=["POST"])
+def auth_setup():
+    data = load_data()
+    if data.get("totp_secret"):
+        return err("Setup already completed")
+    
+    # Generate secret
+    secret = pyotp.random_base32()
+    data["totp_secret"] = secret
+    save_data(data)
+    
+    # Generate QR Code
+    farmer = data.get("farmer", {})
+    name = farmer.get("name", "Farmer")
+    uri = pyotp.totp.TOTP(secret).provisioning_uri(name=name, issuer_name="CocoTrack")
+    
+    img = qrcode.make(uri)
+    buf = io.BytesIO()
+    img.save(buf)
+    qr_b64 = base64.b64encode(buf.getvalue()).decode()
+    
+    return ok({"qr_code": f"data:image/png;base64,{qr_b64}", "secret": secret})
+
+@app.route("/api/auth/login", methods=["POST"])
+def auth_login():
+    data = load_data()
+    secret = data.get("totp_secret")
+    if not secret:
+        return err("Setup required", 401)
+    
+    code = request.json.get("code")
+    if not code:
+        return err("Code required")
+    
+    totp = pyotp.TOTP(secret)
+    if totp.verify(code):
+        session["authenticated"] = True
+        return ok({"authenticated": True})
+    return err("Invalid code")
+
+@app.route("/api/auth/logout", methods=["POST"])
+def auth_logout():
+    session.pop("authenticated", None)
+    return ok({"authenticated": False})
 
 # ─── Farmer ───────────────────────────────────────────────────────────────────
 @app.route("/api/farmer", methods=["GET"])

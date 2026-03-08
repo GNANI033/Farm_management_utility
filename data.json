@@ -154,5 +154,6 @@
     "urea": 40.0,
     "dap": 60.0
   },
-  "fertilizer_compositions": []
+  "fertilizer_compositions": [],
+  "totp_secret": "XU6SDJRIOK3G66IU7HPH2I243RZEV"
 }
