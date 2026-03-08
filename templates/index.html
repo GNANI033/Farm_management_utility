@@ -1,0 +1,2527 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CocoTrack 🌴</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --soil: #1a1208;
+      --bark: #2d1f0e;
+      --moss: #2a3d1c;
+      --leaf: #3d6b2a;
+      --lime: #7ab648;
+      --sun: #e8a020;
+      --amber: #c47b10;
+      --husk: #d4a84b;
+      --cream: #f5edd8;
+      --fog: #c8b99a;
+      --rain: #4a7fa5;
+      --card-bg: rgba(45, 31, 14, 0.65);
+      --card-border: rgba(212, 168, 75, 0.2);
+      --radius: 12px;
+      --transition: 0.2s ease;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--soil);
+      color: var(--cream);
+      min-height: 100vh;
+      overflow-x: hidden
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background: radial-gradient(ellipse 80% 60% at 20% 10%, rgba(61, 107, 42, .18) 0%, transparent 60%), radial-gradient(ellipse 60% 80% at 80% 90%, rgba(42, 61, 28, .25) 0%, transparent 60%);
+      pointer-events: none
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      opacity: .5
+    }
+
+    .app {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      min-height: 100vh
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 220px;
+      flex-shrink: 0;
+      background: linear-gradient(180deg, var(--bark) 0%, rgba(26, 18, 8, .95) 100%);
+      border-right: 1px solid var(--card-border);
+      display: flex;
+      flex-direction: column;
+      padding: 0 0 24px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      backdrop-filter: blur(8px)
+    }
+
+    .sidebar-logo {
+      padding: 24px 20px 20px;
+      border-bottom: 1px solid var(--card-border)
+    }
+
+    .sidebar-logo .tree {
+      font-size: 32px;
+      line-height: 1
+    }
+
+    .sidebar-logo h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--husk);
+      letter-spacing: .02em;
+      margin-top: 6px
+    }
+
+    .sidebar-logo p {
+      font-size: 10px;
+      color: var(--fog);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-top: 2px
+    }
+
+    .nav {
+      flex: 1;
+      padding: 16px 0;
+      overflow-y: auto
+    }
+
+    .nav-section {
+      padding: 6px 20px 2px;
+      font-size: 9px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--fog);
+      opacity: .6
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 20px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--fog);
+      border-left: 3px solid transparent;
+      transition: all var(--transition);
+      user-select: none
+    }
+
+    .nav-item:hover {
+      color: var(--cream);
+      background: rgba(255, 255, 255, .04)
+    }
+
+    .nav-item.active {
+      color: var(--husk);
+      border-left-color: var(--husk);
+      background: rgba(212, 168, 75, .08)
+    }
+
+    .nav-item .icon {
+      font-size: 15px;
+      width: 20px;
+      text-align: center
+    }
+
+    .sidebar-season {
+      margin: 0 16px;
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      background: rgba(122, 182, 72, .1);
+      border: 1px solid rgba(122, 182, 72, .2)
+    }
+
+    .sidebar-season .sl {
+      font-size: 9px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--lime);
+      opacity: .8
+    }
+
+    .sidebar-season .sv {
+      font-size: 13px;
+      color: var(--lime);
+      font-weight: 500;
+      margin-top: 2px
+    }
+
+    .sidebar-season .sc {
+      font-size: 11px;
+      color: var(--fog);
+      margin-top: 1px
+    }
+
+    /* Main */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 32px;
+      border-bottom: 1px solid var(--card-border);
+      background: rgba(26, 18, 8, .6);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 10
+    }
+
+    .topbar-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      color: var(--cream)
+    }
+
+    .farmer-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(212, 168, 75, .12);
+      border: 1px solid var(--card-border);
+      font-size: 13px;
+      color: var(--husk)
+    }
+
+    .content {
+      flex: 1;
+      padding: 28px 32px;
+      overflow-y: auto
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      backdrop-filter: blur(10px);
+      padding: 20px 24px;
+      margin-bottom: 20px
+    }
+
+    .card-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 16px;
+      color: var(--husk);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    /* Stats */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 20px
+    }
+
+    .stat-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      backdrop-filter: blur(10px);
+      transition: transform var(--transition)
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px)
+    }
+
+    .stat-label {
+      font-size: 10px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--fog)
+    }
+
+    .stat-value {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px;
+      margin: 6px 0 2px
+    }
+
+    .stat-card.green .stat-value {
+      color: var(--lime)
+    }
+
+    .stat-card.amber .stat-value {
+      color: var(--husk)
+    }
+
+    .stat-card.yellow .stat-value {
+      color: var(--sun)
+    }
+
+    .stat-card.blue .stat-value {
+      color: var(--rain)
+    }
+
+    /* Weather */
+    .weather-card {
+      background: linear-gradient(135deg, rgba(74, 127, 165, .15), rgba(42, 61, 28, .3));
+      border: 1px solid rgba(74, 127, 165, .25);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      margin-bottom: 20px
+    }
+
+    .weather-main {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap
+    }
+
+    .weather-temp {
+      font-family: 'Playfair Display', serif;
+      font-size: 48px;
+      color: var(--cream)
+    }
+
+    .weather-desc {
+      font-size: 14px;
+      color: var(--fog)
+    }
+
+    .weather-loc {
+      font-size: 11px;
+      color: var(--fog);
+      opacity: .7
+    }
+
+    .weather-stats {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-top: 12px
+    }
+
+    .ws-label {
+      font-size: 9px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--fog)
+    }
+
+    .ws-val {
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--cream);
+      margin-top: 2px
+    }
+
+    .rain-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 500;
+      margin-top: 12px
+    }
+
+    .rain-badge.good {
+      background: rgba(39, 174, 96, .15);
+      border: 1px solid rgba(39, 174, 96, .3);
+      color: #5dbb7e
+    }
+
+    .rain-badge.warning {
+      background: rgba(232, 160, 32, .15);
+      border: 1px solid rgba(232, 160, 32, .3);
+      color: var(--sun)
+    }
+
+    .rain-badge.danger {
+      background: rgba(192, 57, 43, .15);
+      border: 1px solid rgba(192, 57, 43, .3);
+      color: #e05c4b
+    }
+
+    /* Table */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px
+    }
+
+    .data-table th {
+      text-align: left;
+      padding: 8px 12px;
+      font-size: 9px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--fog);
+      border-bottom: 1px solid var(--card-border);
+      font-weight: 500
+    }
+
+    .data-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(212, 168, 75, .08);
+      vertical-align: middle
+    }
+
+    .data-table tr:last-child td {
+      border-bottom: none
+    }
+
+    .data-table tr:hover td {
+      background: rgba(255, 255, 255, .03)
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 500
+    }
+
+    .bg {
+      background: rgba(39, 174, 96, .15);
+      color: #5dbb7e;
+      border: 1px solid rgba(39, 174, 96, .3)
+    }
+
+    .ba {
+      background: rgba(212, 168, 75, .15);
+      color: var(--husk);
+      border: 1px solid var(--card-border)
+    }
+
+    .br {
+      background: rgba(192, 57, 43, .15);
+      color: #e05c4b;
+      border: 1px solid rgba(192, 57, 43, .3)
+    }
+
+    .by {
+      background: rgba(232, 160, 32, .15);
+      color: var(--sun);
+      border: 1px solid rgba(232, 160, 32, .3)
+    }
+
+    .bb {
+      background: rgba(74, 127, 165, .15);
+      color: #7ab5d4;
+      border: 1px solid rgba(74, 127, 165, .3)
+    }
+
+    /* Forms */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px
+    }
+
+    .form-grid.c3 {
+      grid-template-columns: 1fr 1fr 1fr
+    }
+
+    .form-grid.c1 {
+      grid-template-columns: 1fr
+    }
+
+    .fg {
+      display: flex;
+      flex-direction: column;
+      gap: 5px
+    }
+
+    .fg.s2 {
+      grid-column: span 2
+    }
+
+    .fg.s3 {
+      grid-column: span 3
+    }
+
+    label {
+      font-size: 11px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--fog)
+    }
+
+    input,
+    select,
+    textarea {
+      background: rgba(0, 0, 0, .35);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      color: var(--cream);
+      padding: 9px 12px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      outline: none;
+      transition: border-color var(--transition)
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--husk)
+    }
+
+    select option {
+      background: var(--bark)
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 60px
+    }
+
+    .hint {
+      font-size: 11px;
+      color: var(--lime);
+      font-family: 'DM Mono', monospace;
+      margin-top: -2px
+    }
+
+    .saved-price-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: rgba(122, 182, 72, .08);
+      border: 1px solid rgba(122, 182, 72, .2);
+      font-size: 12px;
+      color: var(--fog);
+      margin-bottom: 4px
+    }
+
+    .saved-price-row strong {
+      color: var(--lime)
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 20px;
+      border-radius: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: all var(--transition)
+    }
+
+    .btn-p {
+      background: var(--leaf);
+      color: white
+    }
+
+    .btn-p:hover {
+      background: var(--lime);
+      transform: translateY(-1px)
+    }
+
+    .btn-a {
+      background: rgba(212, 168, 75, .15);
+      color: var(--husk);
+      border: 1px solid var(--card-border)
+    }
+
+    .btn-a:hover {
+      background: rgba(212, 168, 75, .25)
+    }
+
+    .btn-g {
+      background: transparent;
+      color: var(--fog);
+      border: 1px solid var(--card-border)
+    }
+
+    .btn-g:hover {
+      color: var(--cream);
+      background: rgba(255, 255, 255, .05)
+    }
+
+    .btn-r {
+      background: rgba(192, 57, 43, .15);
+      color: #e05c4b;
+      border: 1px solid rgba(192, 57, 43, .3)
+    }
+
+    .btn-r:hover {
+      background: rgba(192, 57, 43, .25)
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+      flex-wrap: wrap
+    }
+
+    /* Alerts */
+    .alert-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      font-size: 13px
+    }
+
+    .alert-item.danger {
+      background: rgba(192, 57, 43, .12);
+      border: 1px solid rgba(192, 57, 43, .25)
+    }
+
+    .alert-item.warning {
+      background: rgba(232, 160, 32, .10);
+      border: 1px solid rgba(232, 160, 32, .25)
+    }
+
+    .alert-item.success {
+      background: rgba(39, 174, 96, .10);
+      border: 1px solid rgba(39, 174, 96, .25)
+    }
+
+    .alert-item.info {
+      background: rgba(74, 127, 165, .10);
+      border: 1px solid rgba(74, 127, 165, .25)
+    }
+
+    .alert-icon {
+      font-size: 18px;
+      flex-shrink: 0
+    }
+
+    .alert-farm {
+      font-weight: 500;
+      color: var(--cream)
+    }
+
+    .alert-msg {
+      color: var(--fog);
+      font-size: 12px;
+      margin-top: 2px
+    }
+
+    /* Progress bar */
+    .progress-bar {
+      height: 8px;
+      background: rgba(255, 255, 255, .08);
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 6px 0
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--leaf), var(--lime));
+      border-radius: 4px;
+      transition: width .4s ease
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--card-border)
+    }
+
+    .tab {
+      padding: 8px 18px;
+      font-size: 13px;
+      cursor: pointer;
+      color: var(--fog);
+      border-bottom: 2px solid transparent;
+      transition: all var(--transition);
+      margin-bottom: -1px
+    }
+
+    .tab:hover {
+      color: var(--cream)
+    }
+
+    .tab.active {
+      color: var(--husk);
+      border-bottom-color: var(--husk)
+    }
+
+    /* Pages */
+    .page {
+      display: none;
+      animation: fadeIn .2s ease
+    }
+
+    .page.active {
+      display: block
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px)
+      }
+
+      to {
+        opacity: 1;
+        transform: none
+      }
+    }
+
+    /* Section divider */
+    .sdiv {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 18px 0 12px
+    }
+
+    .sdiv hr {
+      flex: 1;
+      border: none;
+      border-top: 1px solid var(--card-border)
+    }
+
+    .sdiv span {
+      font-size: 10px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--fog)
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .7);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px
+    }
+
+    .modal-overlay.hidden {
+      display: none
+    }
+
+    .modal {
+      background: var(--bark);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 28px 32px;
+      width: 100%;
+      max-width: 700px;
+      max-height: 90vh;
+      overflow-y: auto;
+      position: relative
+    }
+
+    .modal-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 18px;
+      color: var(--husk);
+      margin-bottom: 20px
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: none;
+      border: none;
+      color: var(--fog);
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+      padding: 4px 8px
+    }
+
+    .modal-close:hover {
+      color: var(--cream)
+    }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      z-index: 9999;
+      background: var(--moss);
+      border: 1px solid var(--lime);
+      color: var(--cream);
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 13px;
+      transform: translateY(80px);
+      opacity: 0;
+      transition: all .3s ease;
+      max-width: 340px
+    }
+
+    #toast.show {
+      transform: none;
+      opacity: 1
+    }
+
+    #toast.error {
+      background: rgba(192, 57, 43, .9);
+      border-color: #e05c4b
+    }
+
+    /* Loading */
+    .loading {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--fog);
+      font-size: 13px;
+      padding: 20px 0
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--card-border);
+      border-top-color: var(--husk);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+      flex-shrink: 0
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    /* Calculator */
+    .calc-results {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 20px
+    }
+
+    .calc-card {
+      border-radius: var(--radius);
+      padding: 20px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      position: relative;
+      transition: transform var(--transition)
+    }
+
+    .calc-card:hover {
+      transform: translateY(-2px)
+    }
+
+    .calc-card.best {
+      background: linear-gradient(135deg, rgba(61, 107, 42, .4), rgba(42, 61, 28, .5));
+      border-color: var(--lime);
+      box-shadow: 0 0 24px rgba(122, 182, 72, .15)
+    }
+
+    .calc-crown {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--leaf);
+      color: white;
+      padding: 3px 12px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      white-space: nowrap
+    }
+
+    .calc-mode {
+      font-size: 11px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--fog);
+      margin-bottom: 8px
+    }
+
+    .calc-profit {
+      font-family: 'Playfair Display', serif;
+      font-size: 32px;
+      margin: 4px 0
+    }
+
+    .calc-profit.pos {
+      color: var(--lime)
+    }
+
+    .calc-profit.neg {
+      color: #e05c4b
+    }
+
+    .calc-br {
+      margin-top: 12px;
+      border-top: 1px solid var(--card-border);
+      padding-top: 12px
+    }
+
+    .cr {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      padding: 3px 0
+    }
+
+    .ck {
+      color: var(--fog)
+    }
+
+    .cv {
+      color: var(--cream);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px
+    }
+
+    .cv.g {
+      color: var(--lime)
+    }
+
+    .cv.r {
+      color: #e05c4b
+    }
+
+    /* Predictions */
+    .pred-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px
+    }
+
+    .pred-card {
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border)
+    }
+
+    .pred-farm {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--cream);
+      margin-bottom: 12px
+    }
+
+    .pred-stat {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 0;
+      border-bottom: 1px solid rgba(212, 168, 75, .08);
+      font-size: 13px
+    }
+
+    .pred-stat:last-child {
+      border-bottom: none
+    }
+
+    .pred-key {
+      color: var(--fog)
+    }
+
+    .pred-val {
+      color: var(--cream);
+      font-weight: 500
+    }
+
+    .ti {
+      color: var(--lime)
+    }
+
+    .td {
+      color: #e05c4b
+    }
+
+    .ts {
+      color: var(--fog)
+    }
+
+    /* Job sessions list */
+    .session-list {
+      margin-top: 12px
+    }
+
+    .session-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(212, 168, 75, .08);
+      font-size: 12px
+    }
+
+    .session-item:last-child {
+      border-bottom: none
+    }
+
+    .session-date {
+      color: var(--fog);
+      min-width: 80px
+    }
+
+    .session-pct {
+      color: var(--lime);
+      font-family: 'DM Mono', monospace;
+      min-width: 60px
+    }
+
+    .session-note {
+      color: var(--fog);
+      flex: 1
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(212, 168, 75, .25);
+      border-radius: 3px
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="tree">🌴</div>
+        <h1>CocoTrack</h1>
+        <p>Farm Management</p>
+      </div>
+      <nav class="nav">
+        <div class="nav-section">Overview</div>
+        <div class="nav-item active" data-page="dashboard"><span class="icon">📊</span> Dashboard</div>
+        <div class="nav-item" data-page="weather"><span class="icon">🌤</span> Weather</div>
+        <div class="nav-section">Farm</div>
+        <div class="nav-item" data-page="farms"><span class="icon">🌱</span> Farms</div>
+        <div class="nav-item" data-page="harvests"><span class="icon">🥥</span> Harvests</div>
+        <div class="nav-item" data-page="fertilizers"><span class="icon">🧪</span> Fertilizers</div>
+        <div class="nav-section">Analysis</div>
+        <div class="nav-item" data-page="calculator"><span class="icon">💰</span> Sell Calculator</div>
+        <div class="nav-item" data-page="predictions"><span class="icon">🔮</span> Predictions</div>
+        <div class="nav-section">Account</div>
+        <div class="nav-item" data-page="profile"><span class="icon">👨‍🌾</span> Profile</div>
+        <div class="nav-item" data-page="settings"><span class="icon">⚙️</span> Settings</div>
+      </nav>
+      <div class="sidebar-season">
+        <div class="sl">Current Season</div>
+        <div class="sv" id="seasonName">—</div>
+        <div class="sc" id="seasonCycle">— day cycle</div>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="main">
+      <header class="topbar">
+        <div class="topbar-title" id="pageTitle">Dashboard</div>
+        <div class="farmer-chip"><span>👨‍🌾</span><span id="farmerName">Loading…</span></div>
+      </header>
+      <div class="content">
+
+        <!-- Dashboard -->
+        <div class="page active" id="page-dashboard">
+          <div class="stats-row">
+            <div class="stat-card green">
+              <div class="stat-label">Farms</div>
+              <div class="stat-value" id="statFarms">—</div>
+            </div>
+            <div class="stat-card amber">
+              <div class="stat-label">Trees</div>
+              <div class="stat-value" id="statTrees">—</div>
+            </div>
+            <div class="stat-card yellow">
+              <div class="stat-label">Total Revenue</div>
+              <div class="stat-value" id="statRevenue">—</div>
+            </div>
+            <div class="stat-card blue">
+              <div class="stat-label">Total Profit</div>
+              <div class="stat-value" id="statProfit">—</div>
+            </div>
+          </div>
+          <div id="dashWeather"></div>
+          <div class="card">
+            <div class="card-title">⚡ Active Alerts</div>
+            <div id="alertsList">
+              <div class="loading">
+                <div class="spinner"></div>Loading…
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">🥥 Recent Harvests</div>
+            <div id="recentHarvests">
+              <div class="loading">
+                <div class="spinner"></div>Loading…
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Weather -->
+        <div class="page" id="page-weather">
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-title">📍 Check Location</div>
+            <div style="display:flex;gap:10px;align-items:flex-end">
+              <div class="fg" style="flex:1"><label>Location / District</label><input id="wxLocInput"
+                  placeholder="e.g. Pollachi, Coimbatore, Thrissur"></div>
+              <button class="btn btn-p" onclick="fetchWeatherPage()">🔍 Fetch</button>
+            </div>
+          </div>
+          <div id="weatherPageResult"></div>
+        </div>
+
+        <!-- Farms -->
+        <div class="page" id="page-farms">
+          <div class="tabs">
+            <div class="tab active" data-tab="farms-list">All Farms</div>
+            <div class="tab" data-tab="farms-add">+ Add Farm</div>
+          </div>
+          <div id="tab-farms-list">
+            <div id="farmsList">
+              <div class="loading">
+                <div class="spinner"></div>Loading…
+              </div>
+            </div>
+          </div>
+          <div id="tab-farms-add" style="display:none">
+            <div class="card">
+              <div class="card-title">🌱 Add New Farm</div>
+              <div class="form-grid">
+                <div class="fg"><label>Farm Name *</label><input id="fName" placeholder="My Coconut Farm"></div>
+                <div class="fg"><label>Location / Survey No.</label><input id="fLocation"
+                    placeholder="Survey No. 45, Pollachi"></div>
+                <div class="fg"><label>Area (Acres) *</label><input id="fArea" type="number" step="0.1"
+                    placeholder="5.5"></div>
+                <div class="fg"><label>Number of Trees *</label><input id="fTrees" type="number" placeholder="120">
+                </div>
+                <div class="fg"><label>Tree Age (Years)</label><input id="fTreeAge" type="number" placeholder="15">
+                </div>
+                <div class="fg"><label>Soil Type</label><input id="fSoil" value="loamy"></div>
+                <div class="fg"><label>Water Source</label><select id="fWater">
+                    <option>borewell</option>
+                    <option>canal</option>
+                    <option>rain-fed</option>
+                    <option>river</option>
+                  </select></div>
+                <div class="fg"><label>Intercropping?</label><select id="fInterCrop" onchange="toggleIntercrop()">
+                    <option value="false">No</option>
+                    <option value="true">Yes</option>
+                  </select></div>
+                <div class="fg" id="fInterCropNamesG" style="display:none"><label>Intercrop Crops</label><input
+                    id="fInterCropNames" placeholder="banana, tapioca"></div>
+                <div class="fg" id="fInterCropAreaG" style="display:none"><label>Intercrop Area (Acres)</label><input
+                    id="fInterCropArea" type="number" step="0.1" placeholder="1.5"></div>
+              </div>
+              <div class="btn-row">
+                <button class="btn btn-p" onclick="addFarm()">✅ Save Farm</button>
+                <button class="btn btn-g" onclick="switchTab('farms','farms-list')">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Harvests -->
+        <div class="page" id="page-harvests">
+          <div class="tabs">
+            <div class="tab active" data-tab="harvests-list">History</div>
+            <div class="tab" data-tab="harvests-add" onclick="initBulkHarvestForm()">+ Log Harvest</div>
+          </div>
+          <div id="tab-harvests-list">
+            <div id="harvestsList">
+              <div class="loading">
+                <div class="spinner"></div>Loading…
+              </div>
+            </div>
+          </div>
+          <div id="tab-harvests-add" style="display:none">
+            <div class="card">
+              <div class="card-title">🥥 Log Bulk Harvest</div>
+              <p style="font-size:12px;color:var(--fog);margin-bottom:14px">Enter nut counts for all harvested farms.
+                Proportional expenses will be calculated automatically.</p>
+
+              <div id="bulkHarvestContainer" style="margin-bottom:20px; overflow-x:auto;">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Farm Name</th>
+                      <th style="width:140px">Total Nuts *</th>
+                      <th style="width:140px">Others (Dropped)</th>
+                    </tr>
+                  </thead>
+                  <tbody id="bulkFarmList">
+                    <!-- Dynamic rows -->
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="sdiv">
+                <hr><span>Global Details & Shared Expenses</span>
+                <hr>
+              </div>
+
+              <div class="form-grid">
+                <div class="fg"><label>Harvest Date *</label><input id="hDate" type="date"></div>
+                <div class="fg"><label>Selling Price / Nut (₹) *</label><input id="hPrice" type="number" step="0.5"
+                    placeholder="18.00"></div>
+                <div class="fg"><label>Total Labour Cost (₹)</label><input id="hLabour" type="number" value="0"></div>
+                <div class="fg"><label>Total Transport Cost (₹)</label><input id="hTransport" type="number" value="0">
+                </div>
+                <div class="fg"><label>Other Global Expenses (₹)</label><input id="hOther" type="number" value="0">
+                </div>
+                <div class="fg s2"><label>Notes</label><textarea id="hNotes"
+                    placeholder="Weather, tree health, shared notes…"></textarea></div>
+              </div>
+
+              <div class="btn-row">
+                <button class="btn btn-p" onclick="addBulkHarvest()">✅ Log Bulk Harvest</button>
+                <button class="btn btn-g" onclick="switchTab('harvests','harvests-list')">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Fertilizers -->
+        <div class="page" id="page-fertilizers">
+          <div class="tabs">
+            <div class="tab active" data-tab="fertilizers-jobs">Applications</div>
+            <div class="tab" data-tab="fertilizers-new">+ New Application</div>
+            <div class="tab" data-tab="fertilizers-compositions">Dosage Presets</div>
+            <div class="tab" data-tab="fertilizers-prices">Update Prices</div>
+          </div>
+
+          <!-- Tab: Applications list -->
+          <div id="tab-fertilizers-jobs">
+            <div id="fertJobsList">
+              <div class="loading">
+                <div class="spinner"></div>Loading…
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab: New Application -->
+          <div id="tab-fertilizers-new" style="display:none">
+            <div class="card">
+              <div class="card-title">🧪 Start Fertilizer Application</div>
+              <div class="form-grid">
+                <div class="fg"><label>Farm *</label><select id="fjFarm" onchange="onFertFarmChange()"></select></div>
+                <div class="fg"><label>Fertilizer Type *</label>
+                  <select id="fjType" onchange="onFertTypeChange()">
+                    <option value="urea">Urea</option>
+                    <option value="dap">DAP</option>
+                    <option value="mop">MOP / Red Potash</option>
+                    <option value="ssp">SSP</option>
+                    <option value="fym">FYM (Farm Yard Manure)</option>
+                    <option value="neem_cake">Neem Cake</option>
+                    <option value="vermicompost">Vermicompost</option>
+                    <option value="boron">Boron</option>
+                    <option value="zinc_sulphate">Zinc Sulphate</option>
+                    <option value="potassium_nitrate">Potassium Nitrate</option>
+                    <option value="custom">Custom / Other</option>
+                  </select>
+                </div>
+                <div class="fg" id="fjCustomNameG" style="display:none"><label>Custom Fertilizer Name</label><input
+                    id="fjCustomName" placeholder="e.g. Micromax"></div>
+              </div>
+
+              <!-- Saved price info + price input -->
+              <div id="fjPriceInfo" style="margin-top:14px"></div>
+              <div class="form-grid" style="margin-top:10px">
+                <div class="fg">
+                  <label id="fjQtyLabel">Total Quantity (kg) *</label>
+                  <input id="fjQty" type="number" step="0.1" placeholder="50">
+                  <span class="hint" id="fjQtyHint"></span>
+                </div>
+                <div class="fg">
+                  <label>Price per <span id="fjUnitLabel">kg</span> (₹) *</label>
+                  <input id="fjPrice" type="number" step="1" placeholder="0">
+                  <span class="hint" id="fjPriceHint">Will be saved for next time</span>
+                </div>
+                <div class="fg">
+                  <label>Total Cost (₹)</label>
+                  <input id="fjTotalCost" type="number" readonly style="opacity:.6">
+                </div>
+                <div class="fg"><label>Start Date *</label><input id="fjDate" type="date"></div>
+              </div>
+
+              <!-- Composition preset -->
+              <div class="sdiv">
+                <hr><span>Dosage Preset (optional)</span>
+                <hr>
+              </div>
+              <div id="fjCompositionRow" style="margin-bottom:14px">
+                <div style="font-size:12px;color:var(--fog);margin-bottom:8px">Pre-saved dosage for this
+                  farm+fertilizer:</div>
+                <div id="fjCompositionInfo" style="font-size:13px;color:var(--fog)">Select a farm first</div>
+              </div>
+
+              <div class="form-grid">
+                <div class="fg s2"><label>Notes</label><textarea id="fjNotes"
+                    placeholder="Any special instructions, weather conditions…"></textarea></div>
+              </div>
+              <div class="btn-row">
+                <button class="btn btn-p" onclick="startFertJob()">🚀 Start Application Job</button>
+                <button class="btn btn-g" onclick="switchTab('fertilizers','fertilizers-jobs')">Cancel</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab: Dosage Presets -->
+          <div id="tab-fertilizers-compositions" style="display:none">
+            <div class="card" style="margin-bottom:16px">
+              <div class="card-title">📋 Save Dosage Preset</div>
+              <p style="font-size:12px;color:var(--fog);margin-bottom:14px">Set once — how much fertilizer per tree.
+                This gets recalled automatically when logging.</p>
+              <div class="form-grid c3">
+                <div class="fg"><label>Farm</label><select id="cpFarm"></select></div>
+                <div class="fg"><label>Fertilizer Type</label>
+                  <select id="cpType">
+                    <option value="urea">Urea</option>
+                    <option value="dap">DAP</option>
+                    <option value="mop">MOP / Red Potash</option>
+                    <option value="ssp">SSP</option>
+                    <option value="fym">FYM</option>
+                    <option value="neem_cake">Neem Cake</option>
+                    <option value="vermicompost">Vermicompost</option>
+                    <option value="boron">Boron</option>
+                    <option value="zinc_sulphate">Zinc Sulphate</option>
+                    <option value="potassium_nitrate">Potassium Nitrate</option>
+                    <option value="custom">Custom</option>
+                  </select>
+                </div>
+                <div class="fg"><label>Qty per Tree</label><input id="cpQty" type="number" step="0.1"
+                    placeholder="e.g. 500"></div>
+                <div class="fg"><label>Unit</label><select id="cpUnit">
+                    <option value="g">grams (g)</option>
+                    <option value="kg">kilograms (kg)</option>
+                  </select></div>
+                <div class="fg"><label>Application Method</label><input id="cpMethod" placeholder="ring, broadcast…">
+                </div>
+                <div class="fg"><label>Notes</label><input id="cpNotes" placeholder="Optional"></div>
+              </div>
+              <div class="btn-row"><button class="btn btn-p" onclick="saveComposition()">💾 Save Preset</button></div>
+            </div>
+            <div id="compositionsList">
+              <div class="loading">
+                <div class="spinner"></div>Loading…
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab: Update Prices -->
+          <div id="tab-fertilizers-prices" style="display:none">
+            <div class="card">
+              <div class="card-title">💵 Fertilizer Purchase Prices</div>
+              <p style="font-size:12px;color:var(--fog);margin-bottom:18px">Update whenever rates change at your
+                supplier. These are pre-filled when you log a new application.</p>
+              <div id="fertPriceForm" class="form-grid c3"></div>
+              <div class="btn-row"><button class="btn btn-p" onclick="saveFertPrices()">💾 Save Prices</button></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Calculator -->
+        <div class="page" id="page-calculator">
+          <div class="card">
+            <div class="card-title">💰 Selling Mode Profit Calculator</div>
+            <div id="calcWeatherWarn" style="margin-bottom:14px"></div>
+            <div class="sdiv">
+              <hr><span>Harvest Details</span>
+              <hr>
+            </div>
+            <div class="form-grid c3">
+              <div class="fg"><label>Total Nuts</label><input id="cNuts" type="number" oninput="syncGoodNuts()"></div>
+              <div class="fg"><label>Good (Saleable) Nuts</label><input id="cGoodNuts" type="number"></div>
+              <div class="fg"><label>Harvest Expenses (₹)</label><input id="cExpenses" type="number" value="0"></div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:flex-end;margin:10px 0 18px">
+              <div class="fg" style="flex:1"><label>Load from Harvest ID</label><input id="cHarvestId"
+                  placeholder="HRV-2026-001" style="font-family:'DM Mono',monospace;font-size:12px"></div>
+              <button class="btn btn-g" onclick="loadHarvestToCalc()">Load</button>
+            </div>
+            <div class="sdiv">
+              <hr><span>① Sell as Pieces</span>
+              <hr>
+            </div>
+            <div class="form-grid">
+              <div class="fg"><label>Selling Price per Nut (₹)</label><input id="cPriceNut" type="number" step="0.5">
+              </div>
+            </div>
+            <div class="sdiv">
+              <hr><span>② Sell by Weight</span>
+              <hr>
+            </div>
+            <div class="form-grid">
+              <div class="fg"><label>Weight of 10 dehusked nuts (kg)</label><input id="cWeight10" type="number"
+                  step="0.01" oninput="showWeightHint('cWeight10','perNutWeightHint')"><span class="hint"
+                  id="perNutWeightHint"></span></div>
+              <div class="fg"><label>Price per Ton (₹)</label><input id="cPriceTon" type="number"></div>
+            </div>
+            <div class="sdiv">
+              <hr><span>③ Sell as Copra</span>
+              <hr>
+            </div>
+            <div class="form-grid c3">
+              <div class="fg"><label>Weight of 10 dehusked nuts (kg)</label><input id="cCopraWeight10" type="number"
+                  step="0.01" oninput="showWeightHint('cCopraWeight10','copraPerNutHint')"><span class="hint"
+                  id="copraPerNutHint"></span></div>
+              <div class="fg"><label>Shell Price (₹/kg)</label><input id="cShell" type="number" step="0.1"></div>
+              <div class="fg"><label>Grade 1 Copra (₹/kg)</label><input id="cG1" type="number"></div>
+              <div class="fg"><label>Grade 2 Copra (₹/kg)</label><input id="cG2" type="number"></div>
+              <div class="fg"><label>Grade 3 Copra (₹/kg)</label><input id="cG3" type="number"></div>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-p" onclick="runCalculator()">⚡ Calculate Best Option</button>
+              <button class="btn btn-g" onclick="clearCalculator()">Clear</button>
+            </div>
+          </div>
+          <div id="calcResults" style="display:none">
+            <div class="calc-results" id="calcCards"></div>
+            <div class="card" style="margin-top:16px" id="copraBreakdownCard"></div>
+          </div>
+        </div>
+
+        <!-- Predictions -->
+        <div class="page" id="page-predictions">
+          <div id="predContent">
+            <div class="loading">
+              <div class="spinner"></div>Loading…
+            </div>
+          </div>
+        </div>
+
+        <!-- Profile -->
+        <div class="page" id="page-profile">
+          <div class="card">
+            <div class="card-title">👨‍🌾 Farmer Profile</div>
+            <div class="form-grid">
+              <div class="fg"><label>Full Name *</label><input id="pName"></div>
+              <div class="fg"><label>Phone *</label><input id="pPhone"></div>
+              <div class="fg"><label>Email</label><input id="pEmail" type="email"></div>
+              <div class="fg"><label>Village / Town *</label><input id="pVillage"></div>
+              <div class="fg"><label>District *</label><input id="pDistrict"></div>
+              <div class="fg"><label>State *</label><input id="pState" value="Tamil Nadu"></div>
+            </div>
+            <div id="pClimateDetected" style="margin-top:10px;font-size:12px;color:var(--lime)"></div>
+            <div class="btn-row"><button class="btn btn-p" onclick="saveFarmer()">💾 Save Profile</button></div>
+          </div>
+        </div>
+
+        <!-- Settings -->
+        <div class="page" id="page-settings">
+          <div class="card">
+            <div class="card-title">⚙️ Copra Processing Costs (₹ per nut)</div>
+            <div class="form-grid c3" id="settingsForm"></div>
+            <div class="btn-row">
+              <button class="btn btn-p" onclick="saveSettings()">💾 Save Settings</button>
+              <button class="btn btn-g" onclick="loadSettings()">↺ Reset</button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /content -->
+    </div><!-- /main -->
+  </div><!-- /app -->
+
+  <!-- ── Modals ── -->
+
+  <!-- Edit Farm Modal -->
+  <div class="modal-overlay hidden" id="modalFarm">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal('modalFarm')">✕</button>
+      <div class="modal-title">✏️ Edit Farm</div>
+      <input type="hidden" id="efId">
+      <div class="form-grid">
+        <div class="fg"><label>Farm Name *</label><input id="efName"></div>
+        <div class="fg"><label>Location / Survey No.</label><input id="efLocation"></div>
+        <div class="fg"><label>Area (Acres) *</label><input id="efArea" type="number" step="0.1"></div>
+        <div class="fg"><label>Number of Trees *</label><input id="efTrees" type="number"></div>
+        <div class="fg"><label>Tree Age (Years)</label><input id="efTreeAge" type="number"></div>
+        <div class="fg"><label>Soil Type</label><input id="efSoil"></div>
+        <div class="fg"><label>Water Source</label><select id="efWater">
+            <option>borewell</option>
+            <option>canal</option>
+            <option>rain-fed</option>
+            <option>river</option>
+          </select></div>
+        <div class="fg"><label>Intercropping?</label><select id="efInterCrop" onchange="toggleEditIntercrop()">
+            <option value="false">No</option>
+            <option value="true">Yes</option>
+          </select></div>
+        <div class="fg" id="efInterCropNamesG"><label>Intercrop Crops</label><input id="efInterCropNames"></div>
+        <div class="fg" id="efInterCropAreaG"><label>Intercrop Area (Acres)</label><input id="efInterCropArea"
+            type="number" step="0.1"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-p" onclick="saveEditFarm()">💾 Save Changes</button>
+        <button class="btn btn-g" onclick="closeModal('modalFarm')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Harvest Modal -->
+  <div class="modal-overlay hidden" id="modalHarvest">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal('modalHarvest')">✕</button>
+      <div class="modal-title">✏️ Edit Harvest</div>
+      <input type="hidden" id="ehId">
+      <div class="form-grid">
+        <div class="fg"><label>Harvest Date *</label><input id="ehDate" type="date"></div>
+        <div class="fg"><label>Total Nuts Harvested *</label><input id="ehNuts" type="number"></div>
+        <div class="fg"><label>Defective / Dropped Nuts</label><input id="ehDefective" type="number"></div>
+        <div class="fg"><label>Selling Price / Nut (₹) *</label><input id="ehPrice" type="number" step="0.5"></div>
+        <div class="fg"><label>Labour Cost (₹)</label><input id="ehLabour" type="number"></div>
+        <div class="fg"><label>Transport Cost (₹)</label><input id="ehTransport" type="number"></div>
+        <div class="fg"><label>Other Expenses (₹)</label><input id="ehOther" type="number"></div>
+        <div class="fg s2"><label>Notes</label><textarea id="ehNotes"></textarea></div>
+      </div>
+      <div class="btn-row">
+        <button type="button" id="btnDeleteHarvest" class="btn btn-r" onclick="deleteHarvest()">🗑 Delete
+          Harvest</button>
+        <button type="button" id="btnSaveHarvest" class="btn btn-p" onclick="saveEditHarvest()">💾 Save Changes</button>
+        <button type="button" class="btn btn-g" onclick="closeModal('modalHarvest')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Progress Session Modal -->
+  <div class="modal-overlay hidden" id="modalSession">
+    <div class="modal" style="max-width:480px">
+      <button class="modal-close" onclick="closeModal('modalSession')">✕</button>
+      <div class="modal-title">📅 Log Today's Progress</div>
+      <input type="hidden" id="sessJobId">
+      <div id="sessJobInfo" style="margin-bottom:16px;font-size:13px;color:var(--fog)"></div>
+      <div class="form-grid c1">
+        <div class="fg"><label>Date</label><input id="sessDate" type="date"></div>
+        <div class="fg">
+          <label>Progress Type</label>
+          <select id="sessType">
+            <option value="delta">+ Add today's progress (e.g. "20% done today")</option>
+            <option value="set">= Set total progress (e.g. "now at 60% total")</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label id="sessPctLabel">Progress % done today</label>
+          <input id="sessPct" type="number" min="1" max="100" placeholder="20">
+          <span class="hint" id="sessPctHint"></span>
+        </div>
+        <div class="fg"><label>Area Covered (optional)</label><input id="sessArea"
+            placeholder="e.g. North block, rows 1-20"></div>
+        <div class="fg"><label>Notes (optional)</label><input id="sessNotes" placeholder="Weather, observations…"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-p" onclick="submitSession()">✅ Save Progress</button>
+        <button class="btn btn-g" onclick="closeModal('modalSession')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+    // ── State ──────────────────────────────────────────────────────────────────
+    const S = { farms: [], harvests: [], catalogue: {} };
+
+    // ── API ────────────────────────────────────────────────────────────────────
+    async function api(method, path, body) {
+      const opts = { method, headers: { 'Content-Type': 'application/json' } };
+      if (body) opts.body = JSON.stringify(body);
+      const res = await fetch(path, opts);
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error || 'Request failed');
+      return json.data;
+    }
+
+    // ── Nav ────────────────────────────────────────────────────────────────────
+    const PAGE_TITLES = {
+      dashboard: 'Dashboard', weather: 'Weather & Rain',
+      farms: 'Farms', harvests: 'Harvests', fertilizers: 'Fertilizers',
+      calculator: 'Sell Calculator', predictions: 'Yield Predictions',
+      profile: 'Farmer Profile', settings: 'Settings'
+    };
+    document.querySelectorAll('.nav-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const page = el.dataset.page;
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        el.classList.add('active');
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById('page-' + page).classList.add('active');
+        document.getElementById('pageTitle').textContent = PAGE_TITLES[page] || page;
+        loadPage(page);
+      });
+    });
+    function loadPage(p) {
+      if (p === 'dashboard') loadDashboard();
+      if (p === 'farms') loadFarms();
+      if (p === 'harvests') loadHarvests();
+      if (p === 'fertilizers') loadFertilizers();
+      if (p === 'predictions') loadPredictions();
+      if (p === 'profile') loadProfile();
+      if (p === 'settings') loadSettings();
+      if (p === 'calculator') loadCalcWeather();
+    }
+
+    // ── Tabs ───────────────────────────────────────────────────────────────────
+    document.querySelectorAll('.tab').forEach(t => {
+      t.addEventListener('click', () => {
+        const tid = t.dataset.tab;
+        const page = tid.split('-')[0];
+        switchTab(page, tid);
+        // Side-effects on tab open
+        if (tid === 'fertilizers-prices') loadFertPriceForm();
+        if (tid === 'fertilizers-compositions') loadCompositions();
+        if (tid === 'fertilizers-new') initNewJobForm();
+      });
+    });
+    function switchTab(page, tabId) {
+      const pageEl = document.getElementById('page-' + page);
+      pageEl.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabId));
+      pageEl.querySelectorAll('[id^="tab-"]').forEach(el => el.style.display = 'none');
+      const t = document.getElementById('tab-' + tabId);
+      if (t) t.style.display = 'block';
+    }
+
+    // ── Modal ──────────────────────────────────────────────────────────────────
+    function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+    document.querySelectorAll('.modal-overlay').forEach(m => {
+      m.addEventListener('click', e => { if (e.target === m) m.classList.add('hidden'); });
+    });
+
+    // ── Toast ──────────────────────────────────────────────────────────────────
+    function toast(msg, isErr = false) {
+      const el = document.getElementById('toast');
+      el.textContent = msg; el.className = 'show' + (isErr ? ' error' : '');
+      clearTimeout(el._t); el._t = setTimeout(() => el.className = '', 3200);
+    }
+
+    // ── Helpers ────────────────────────────────────────────────────────────────
+    const fmt = v => '₹' + Number(v).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+    const fmtF = v => '₹' + Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const today = () => new Date().toISOString().split('T')[0];
+
+    function wxIcon(c) {
+      if (!c || c <= 1) return '☀️'; if (c <= 3) return '⛅'; if (c <= 48) return '🌫️';
+      if (c <= 67) return '🌧️'; if (c <= 77) return '❄️'; if (c <= 82) return '🌦️'; return '⛈️';
+    }
+    function rainClass(r7) { return r7 >= 100 ? 'danger' : r7 >= 40 ? 'warning' : 'good'; }
+
+    function renderWeather(wx, el) {
+      const bc = rainClass(wx.rain_7day_mm || 0);
+      el.innerHTML = `<div class="weather-card">
+    <div class="weather-main">
+      <div style="font-size:48px;line-height:1">${wxIcon(wx.weather_code)}</div>
+      <div>
+        <div class="weather-temp">${wx.temp_c}°C</div>
+        <div class="weather-desc">${wx.description || ''}</div>
+        <div class="weather-loc">📍 ${wx.location}</div>
+      </div>
+    </div>
+    <div class="weather-stats">
+      <div><div class="ws-label">Humidity</div><div class="ws-val">${wx.humidity_pct}%</div></div>
+      <div><div class="ws-label">Wind</div><div class="ws-val">${wx.wind_kmh} km/h</div></div>
+      <div><div class="ws-label">Rain Now</div><div class="ws-val">${wx.rain_mm} mm</div></div>
+      <div><div class="ws-label">Today</div><div class="ws-val">${wx.rain_today_mm} mm</div></div>
+      <div><div class="ws-label">7-Day</div><div class="ws-val" style="color:${bc === 'danger' ? '#e05c4b' : bc === 'warning' ? 'var(--sun)' : 'var(--lime)'}">${wx.rain_7day_mm} mm</div></div>
+      <div><div class="ws-label">Max/Min</div><div class="ws-val">${wx.daily_max}° / ${wx.daily_min}°</div></div>
+    </div>
+    <div class="rain-badge ${bc}">${wx.advisory}</div>
+    <div style="font-size:10px;color:var(--fog);margin-top:8px;opacity:.6">Updated: ${wx.fetched_at || ''}</div>
+  </div>`;
+    }
+
+    function populateFarmSelects(farms) {
+      ['hFarm', 'fjFarm', 'cpFarm', 'efFarm_ignore'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.innerHTML = farms.map(f => `<option value="${f.id}">${f.name} (${f.id})</option>`).join('');
+      });
+      // fjFarm is handled separately since it triggers onchange
+      const ff = document.getElementById('fjFarm');
+      if (ff) ff.innerHTML = farms.map(f => `<option value="${f.id}">${f.name} (${f.id})</option>`).join('');
+      const cp = document.getElementById('cpFarm');
+      if (cp) cp.innerHTML = farms.map(f => `<option value="${f.id}">${f.name} (${f.id})</option>`).join('');
+    }
+
+    // ── Dashboard ──────────────────────────────────────────────────────────────
+    async function loadDashboard() {
+      try {
+        const [stats, alerts, harvests, farmer] = await Promise.all([
+          api('GET', '/api/stats'), api('GET', '/api/alerts'),
+          api('GET', '/api/harvests'), api('GET', '/api/farmer')
+        ]);
+        document.getElementById('statFarms').textContent = stats.total_farms;
+        document.getElementById('statTrees').textContent = stats.total_trees.toLocaleString();
+        document.getElementById('statRevenue').textContent = fmt(stats.total_revenue);
+        document.getElementById('statProfit').textContent = fmt(stats.total_profit);
+        document.getElementById('seasonName').textContent = (stats.season || '').replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
+        document.getElementById('seasonCycle').textContent = `${stats.harvest_interval.lo}–${stats.harvest_interval.hi} day cycle`;
+        if (farmer) document.getElementById('farmerName').textContent = farmer.name;
+        try {
+          const s = await api('GET', '/api/settings');
+          let loc = s.weather_location || '';
+          if (!loc) loc = (farmer?.district || farmer?.village || 'Chennai');
+          const wx = await api('GET', `/api/weather?location=${encodeURIComponent(loc)}`);
+          renderWeather(wx, document.getElementById('dashWeather'));
+        } catch { document.getElementById('dashWeather').innerHTML = '<div style="font-size:12px;color:var(--fog);margin-bottom:16px">⚠ Weather unavailable</div>'; }
+        const aEl = document.getElementById('alertsList');
+        if (!alerts.length) { aEl.innerHTML = '<div style="color:var(--lime);font-size:13px">✓ All clear — no immediate alerts</div>'; }
+        else {
+          const icons = { fertilizer: '🧪', fertilizer_job: '🔄', harvest: '🥥' };
+          aEl.innerHTML = alerts.map(a => `<div class="alert-item ${a.severity}"><div class="alert-icon">${icons[a.type] || '⚡'}</div><div><div class="alert-farm">${a.farm}</div><div class="alert-msg">${a.message}</div></div></div>`).join('');
+        }
+        const hEl = document.getElementById('recentHarvests');
+        if (!harvests.length) { hEl.innerHTML = '<div style="color:var(--fog);font-size:13px">No harvests logged yet.</div>'; return; }
+        hEl.innerHTML = `<table class="data-table"><thead><tr><th>ID</th><th>Date</th><th>Farm</th><th>Nuts</th><th>Revenue</th><th>Profit</th><th>Next Window</th></tr></thead><tbody>
+    ${harvests.slice(0, 8).map(h => `<tr>
+      <td><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--husk)">${h.harvest_id || '—'}</span></td>
+      <td>${h.harvest_date}</td><td>${h.farm_name}</td>
+      <td>${Number(h.nuts_harvested).toLocaleString()}</td>
+      <td style="color:var(--lime)">${fmt(h.revenue)}</td>
+      <td style="color:${h.profit >= 0 ? 'var(--lime)' : '#e05c4b'}">${fmt(h.profit)}</td>
+      <td style="font-size:11px;color:var(--fog)">${h.next_harvest_from || '—'} → ${h.next_harvest_to || '—'}</td>
+    </tr>`).join('')}</tbody></table>`;
+      } catch (e) { toast(e.message, true); }
+    }
+
+    // ── Weather page ───────────────────────────────────────────────────────────
+    async function fetchWeatherPage() {
+      const loc = document.getElementById('wxLocInput').value.trim();
+      if (!loc) return toast('Enter a location', true);
+      const el = document.getElementById('weatherPageResult');
+      el.innerHTML = '<div class="loading"><div class="spinner"></div>Fetching…</div>';
+      try { renderWeather(await api('GET', `/api/weather?location=${encodeURIComponent(loc)}`), el); }
+      catch { el.innerHTML = '<div style="color:#e05c4b;font-size:13px">⚠ Could not fetch weather — try a nearby city name.</div>'; }
+    }
+
+    // ── Farms ──────────────────────────────────────────────────────────────────
+    async function loadFarms() {
+      try {
+        const farms = await api('GET', '/api/farms');
+        S.farms = farms;
+        populateFarmSelects(farms);
+        const el = document.getElementById('farmsList');
+        if (!farms.length) { el.innerHTML = '<div style="color:var(--fog);font-size:13px">No farms yet. Click "+ Add Farm".</div>'; return; }
+        el.innerHTML = `<table class="data-table"><thead><tr><th>ID</th><th>Name</th><th>Area</th><th>Trees</th><th>Age</th><th>Water</th><th>Intercrop</th><th>Added</th><th></th></tr></thead><tbody>
+    ${farms.map(f => `<tr>
+      <td><span class="badge ba">${f.id}</span></td>
+      <td style="font-weight:500">${f.name}</td>
+      <td>${f.area_acres || '—'} ac</td>
+      <td>${Number(f.num_trees || 0).toLocaleString()}</td>
+      <td>${f.tree_age_years || '—'} yr</td>
+      <td>${f.water_source || '—'}</td>
+      <td>${f.intercropping ? `<span class="badge bg">${f.intercrop_names || 'Yes'}</span>` : '<span style="color:var(--fog);font-size:12px">—</span>'}</td>
+      <td style="font-size:11px;color:var(--fog)">${(f.added_on || '').slice(0, 10)}</td>
+      <td>
+        <button class="btn btn-a" style="padding:4px 10px;font-size:11px;margin-right:4px;" onclick="openEditFarm('${f.id}')">✏ Edit</button>
+        <button class="btn btn-r" style="padding:4px 10px;font-size:11px" onclick="deleteFarm('${f.id}')">🗑 Delete</button>
+      </td>
+    </tr>`).join('')}</tbody></table>`;
+      } catch (e) { toast(e.message, true); }
+    }
+
+    function toggleIntercrop() {
+      const v = document.getElementById('fInterCrop').value === 'true';
+      document.getElementById('fInterCropNamesG').style.display = v ? 'block' : 'none';
+      document.getElementById('fInterCropAreaG').style.display = v ? 'block' : 'none';
+    }
+    function toggleEditIntercrop() {
+      const v = document.getElementById('efInterCrop').value === 'true';
+      document.getElementById('efInterCropNamesG').style.display = v ? 'block' : 'none';
+      document.getElementById('efInterCropAreaG').style.display = v ? 'block' : 'none';
+    }
+
+    async function addFarm() {
+      const b = {
+        name: document.getElementById('fName').value.trim(),
+        location: document.getElementById('fLocation').value.trim(),
+        area_acres: parseFloat(document.getElementById('fArea').value) || 0,
+        num_trees: parseInt(document.getElementById('fTrees').value) || 0,
+        tree_age_years: parseInt(document.getElementById('fTreeAge').value) || 0,
+        soil_type: document.getElementById('fSoil').value,
+        water_source: document.getElementById('fWater').value,
+        intercropping: document.getElementById('fInterCrop').value === 'true',
+        intercrop_names: document.getElementById('fInterCropNames').value,
+        intercrop_area: parseFloat(document.getElementById('fInterCropArea').value) || 0,
+      };
+      if (!b.name || !b.area_acres || !b.num_trees) return toast('Farm name, area and tree count are required', true);
+      try { await api('POST', '/api/farms', b); toast('✅ Farm added!'); switchTab('farms', 'farms-list'); loadFarms(); }
+      catch (e) { toast(e.message, true); }
+    }
+
+    function openEditFarm(fid) {
+      const f = S.farms.find(x => x.id === fid);
+      if (!f) return;
+      document.getElementById('efId').value = fid;
+      document.getElementById('efName').value = f.name || '';
+      document.getElementById('efLocation').value = f.location || '';
+      document.getElementById('efArea').value = f.area_acres || '';
+      document.getElementById('efTrees').value = f.num_trees || '';
+      document.getElementById('efTreeAge').value = f.tree_age_years || '';
+      document.getElementById('efSoil').value = f.soil_type || 'loamy';
+      document.getElementById('efWater').value = f.water_source || 'borewell';
+      document.getElementById('efInterCrop').value = f.intercropping ? 'true' : 'false';
+      document.getElementById('efInterCropNames').value = f.intercrop_names || '';
+      document.getElementById('efInterCropArea').value = f.intercrop_area || '';
+      toggleEditIntercrop();
+      openModal('modalFarm');
+    }
+
+    async function saveEditFarm() {
+      const fid = document.getElementById('efId').value;
+      const b = {
+        name: document.getElementById('efName').value.trim(),
+        location: document.getElementById('efLocation').value.trim(),
+        area_acres: parseFloat(document.getElementById('efArea').value) || 0,
+        num_trees: parseInt(document.getElementById('efTrees').value) || 0,
+        tree_age_years: parseInt(document.getElementById('efTreeAge').value) || 0,
+        soil_type: document.getElementById('efSoil').value,
+        water_source: document.getElementById('efWater').value,
+        intercropping: document.getElementById('efInterCrop').value === 'true',
+        intercrop_names: document.getElementById('efInterCropNames').value,
+        intercrop_area: parseFloat(document.getElementById('efInterCropArea').value) || 0,
+      };
+      if (!b.name || !b.area_acres || !b.num_trees) return toast('Name, area and tree count are required', true);
+      try {
+        await api('PUT', `/api/farms/${fid}`, b);
+        toast('✅ Farm updated!'); closeModal('modalFarm'); loadFarms();
+      } catch (e) { toast(e.message, true); }
+    }
+
+    async function deleteFarm(fid) {
+      if (!confirm('DELETE FARM: Are you sure you want to delete this farm? \n\n⚠ WARNING: This will also PERMANENTLY delete all harvests and fertilizer logs associated with this farm!')) return;
+      try {
+        await api('DELETE', `/api/farms/${fid}`);
+        toast('🗑 Farm and its associated data deleted');
+        loadFarms();
+      }
+      catch (e) { toast(e.message, true); }
+    }
+
+    // ── Harvests ───────────────────────────────────────────────────────────────
+    async function loadHarvests() {
+      try {
+        const [farms, harvests] = await Promise.all([api('GET', '/api/farms'), api('GET', '/api/harvests')]);
+        S.farms = farms; S.harvests = harvests;
+        populateFarmSelects(farms);
+        document.getElementById('hDate').value = today();
+        const el = document.getElementById('harvestsList');
+        if (!harvests.length) { el.innerHTML = '<div style="color:var(--fog);font-size:13px">No harvests logged yet. Click "+ Log Harvest".</div>'; return; }
+        const seasonBadge = s => s === 'summer' ? 'by' : s === 'winter' || s === 'monsoon' ? 'bb' : 'bg';
+        el.innerHTML = `<table class="data-table"><thead><tr>
+      <th>ID</th><th>Date</th><th>Farm</th><th>Nuts</th><th>₹/Nut</th><th>Revenue</th><th>Expenses</th><th>Profit</th><th>Season</th><th>Next Window</th><th></th>
+    </tr></thead><tbody>
+    ${harvests.map(h => `<tr>
+      <td><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--husk)">${h.harvest_id || '—'}${h.last_edited ? '<span style="color:var(--fog)" title="Edited"> ✏</span>' : ''}</span></td>
+      <td>${h.harvest_date}</td><td>${h.farm_name}</td>
+      <td>${Number(h.nuts_harvested).toLocaleString()}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px">₹${parseFloat(h.selling_price || 0).toFixed(2)}</td>
+      <td style="color:var(--lime)">${fmt(h.revenue)}</td>
+      <td style="color:#e05c4b">${fmt(h.total_expenses)}</td>
+      <td style="color:${h.profit >= 0 ? 'var(--lime)' : '#e05c4b'};font-weight:500">${fmt(h.profit)}</td>
+      <td><span class="badge ${seasonBadge(h.season)}">${(h.season || '—').replace('_', ' ')}</span></td>
+      <td style="font-size:11px;color:var(--fog)">${h.next_harvest_from || '—'} → ${h.next_harvest_to || '—'}</td>
+      <td><button class="btn btn-a" style="padding:4px 10px;font-size:11px" onclick="openEditHarvest('${h.harvest_id}')">✏ Edit</button></td>
+    </tr>`).join('')}</tbody></table>`;
+      } catch (e) { toast(e.message, true); }
+    }
+
+    async function initBulkHarvestForm() {
+      if (!S.farms || !S.farms.length) S.farms = await api('GET', '/api/farms');
+      const tbody = document.getElementById('bulkFarmList');
+      if (!S.farms.length) {
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--fog)">No farms found. Add a farm first.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = S.farms.map(f => `
+        <tr>
+          <td style="font-weight:500">${f.name}</td>
+          <td><input type="number" class="bulk-nuts" data-farm-id="${f.id}" placeholder="0" style="width:100%"></td>
+          <td><input type="number" class="bulk-defective" data-farm-id="${f.id}" placeholder="0" style="width:100%"></td>
+        </tr>
+      `).join('');
+      document.getElementById('hDate').value = today();
+    }
+
+    async function addBulkHarvest() {
+      const farmsData = [];
+      const nutInputs = document.querySelectorAll('.bulk-nuts');
+      const defectiveInputs = document.querySelectorAll('.bulk-defective');
+
+      nutInputs.forEach((input, i) => {
+        const nuts = parseInt(input.value) || 0;
+        const defective = parseInt(defectiveInputs[i].value) || 0;
+        if (nuts > 0 || defective > 0) {
+          farmsData.push({
+            farm_id: input.getAttribute('data-farm-id'),
+            nuts_harvested: nuts,
+            defective_nuts: defective
+          });
+        }
+      });
+
+      if (!farmsData.length) return toast('Enter nut counts for at least one farm', true);
+
+      const b = {
+        harvest_date: document.getElementById('hDate').value,
+        selling_price: parseFloat(document.getElementById('hPrice').value) || 0,
+        labour_cost: parseFloat(document.getElementById('hLabour').value) || 0,
+        transport_cost: parseFloat(document.getElementById('hTransport').value) || 0,
+        other_expenses: parseFloat(document.getElementById('hOther').value) || 0,
+        notes: document.getElementById('hNotes').value,
+        farms: farmsData
+      };
+
+      if (!b.harvest_date || !b.selling_price)
+        return toast('Date and selling price are required', true);
+
+      try {
+        await api('POST', '/api/harvests/bulk', b);
+        toast(`✅ Bulk harvest logged successfully!`);
+        switchTab('harvests', 'harvests-list');
+        loadHarvests();
+      } catch (e) { toast(e.message, true); }
+    }
+
+    function openEditHarvest(hid) {
+      const h = S.harvests.find(x => x.harvest_id === hid);
+      if (!h) return;
+      document.getElementById('ehId').value = hid;
+      document.getElementById('ehDate').value = h.harvest_date || '';
+      document.getElementById('ehNuts').value = h.nuts_harvested || 0;
+      document.getElementById('ehDefective').value = h.defective_nuts || 0;
+      document.getElementById('ehPrice').value = h.selling_price || 0;
+      document.getElementById('ehLabour').value = h.labour_cost || 0;
+      document.getElementById('ehTransport').value = h.transport_cost || 0;
+      document.getElementById('ehOther').value = h.other_expenses || 0;
+      document.getElementById('ehNotes').value = h.notes || '';
+      openModal('modalHarvest');
+    }
+
+    async function saveEditHarvest() {
+      const hid = document.getElementById('ehId').value;
+      const b = {
+        harvest_date: document.getElementById('ehDate').value,
+        nuts_harvested: parseInt(document.getElementById('ehNuts').value) || 0,
+        defective_nuts: parseInt(document.getElementById('ehDefective').value) || 0,
+        selling_price: parseFloat(document.getElementById('ehPrice').value) || 0,
+        labour_cost: parseFloat(document.getElementById('ehLabour').value) || 0,
+        transport_cost: parseFloat(document.getElementById('ehTransport').value) || 0,
+        other_expenses: parseFloat(document.getElementById('ehOther').value) || 0,
+        notes: document.getElementById('ehNotes').value,
+      };
+      if (!b.harvest_date || !b.nuts_harvested || !b.selling_price)
+        return toast('Date, nuts count and selling price are required', true);
+      try {
+        console.log('Saving harvest:', hid, b);
+        await api('PUT', `/api/harvests/${hid}`, b);
+        toast('✅ Harvest updated!'); closeModal('modalHarvest'); loadHarvests();
+      } catch (e) { toast(e.message, true); }
+    }
+
+    async function deleteHarvest() {
+      const hid = document.getElementById('ehId').value;
+      if (!hid) return;
+      if (!confirm('Are you sure you want to delete this harvest record?')) return;
+      try {
+        console.log('Deleting harvest:', hid);
+        await api('DELETE', `/api/harvests/${hid}`);
+        toast('🗑 Harvest record deleted');
+        closeModal('modalHarvest');
+        loadHarvests();
+      } catch (e) { toast(e.message, true); }
+    }
+
+    // ── Fertilizers ────────────────────────────────────────────────────────────
+    let _fertCatalogue = {};
+
+    async function loadFertilizers() {
+      // Always load catalogue into state
+      _fertCatalogue = await api('GET', '/api/fertilizer-catalogue');
+      S.catalogue = _fertCatalogue;
+      const [farms, jobs, alerts] = await Promise.all([
+        api('GET', '/api/farms'),
+        api('GET', '/api/fertilizer-jobs'),
+        api('GET', '/api/alerts'),
+      ]);
+      S.farms = farms;
+      populateFarmSelects(farms);
+
+      // Render jobs list
+      const el = document.getElementById('fertJobsList');
+      if (!jobs.length) {
+        el.innerHTML = '<div class="card" style="color:var(--fog);font-size:13px">No fertilizer applications logged yet. Click "+ New Application" to start.</div>';
+      } else {
+        el.innerHTML = jobs.map(job => {
+          const pct = parseFloat(job.progress_pct || 0);
+          const done = job.status === 'completed';
+          const sessions = job.sessions || [];
+          return `<div class="card" style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
+          <div>
+            <div style="font-size:15px;font-weight:500;color:var(--cream)">${job.fertilizer_label}</div>
+            <div style="font-size:12px;color:var(--fog);margin-top:2px">🌱 ${job.farm_name} &nbsp;·&nbsp; 📅 Started ${job.start_date} &nbsp;·&nbsp; <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--husk)">${job.job_id}</span></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+            <span class="badge ${done ? 'bg' : 'by'}">${done ? '✓ Completed' : 'In Progress'}</span>
+            ${!done ? `<button class="btn btn-p" style="padding:5px 12px;font-size:12px" onclick="openSessionModal('${job.job_id}','${job.fertilizer_label}',${pct})">+ Log Progress</button>` : ''}
+            <button class="btn btn-r" style="padding:5px 12px;font-size:12px" onclick="deleteFertilizerJob('${job.job_id}')">🗑 Delete</button>
+          </div>
+        </div>
+        <div class="progress-bar" style="margin-top:12px"><div class="progress-fill" style="width:${pct}%"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--fog);margin-top:4px">
+          <span>${pct.toFixed(0)}% complete</span>
+          <span>${job.total_qty} ${job.unit} · ${fmt(job.total_cost)} total · ₹${job.price_per_unit}/${job.unit}</span>
+        </div>
+        ${job.next_due_date ? `<div style="font-size:11px;color:var(--fog);margin-top:4px">Next application due: <strong style="color:var(--husk)">${job.next_due_date}</strong></div>` : ''}
+        ${sessions.length ? `<div class="session-list">${sessions.map(s => `
+          <div class="session-item">
+            <span class="session-date">${s.date}</span>
+            <span class="session-pct">${s.progress_type === 'delta' ? '+' : '→'}${s.pct_this_day}%</span>
+            <span style="color:var(--fog);font-size:11px">(total: ${s.total_after}%)</span>
+            ${s.area_covered ? `<span class="session-note">📍 ${s.area_covered}</span>` : ''}
+            ${s.notes ? `<span class="session-note">${s.notes}</span>` : ''}
+          </div>`).join('')}</div>` : ''}
+      </div>`;
+        }).join('');
+      }
+    }
+
+    async function initNewJobForm() {
+      if (!Object.keys(S.catalogue).length) {
+        _fertCatalogue = await api('GET', '/api/fertilizer-catalogue');
+        S.catalogue = _fertCatalogue;
+      }
+      if (!S.farms.length) S.farms = await api('GET', '/api/farms');
+      populateFarmSelects(S.farms);
+      document.getElementById('fjDate').value = today();
+      onFertTypeChange(); // set unit label
+    }
+
+    function onFertTypeChange() {
+      const ftype = document.getElementById('fjType').value;
+      const cat = S.catalogue[ftype] || {};
+      const unit = cat.unit || 'kg';
+      const savedPrice = cat.saved_price || 0;
+
+      // Unit label
+      document.getElementById('fjUnitLabel').textContent = unit;
+      document.getElementById('fjQtyLabel').textContent = unit === 'ton'
+        ? 'Total Quantity (tons) *' : `Total Quantity (${unit}) *`;
+
+      // Saved price hint
+      const priceInfo = document.getElementById('fjPriceInfo');
+      if (savedPrice > 0) {
+        priceInfo.innerHTML = `<div class="saved-price-row">💾 Last recorded price: <strong>₹${savedPrice} / ${unit}</strong> &nbsp;— update below if rates have changed</div>`;
+        document.getElementById('fjPrice').value = savedPrice;
+      } else {
+        priceInfo.innerHTML = `<div class="saved-price-row" style="border-color:rgba(212,168,75,.2);background:rgba(212,168,75,.05)">No price saved yet for <strong>${cat.label || ftype}</strong> — enter current market rate below</div>`;
+        document.getElementById('fjPrice').value = '';
+      }
+
+      // Custom name field
+      document.getElementById('fjCustomNameG').style.display = ftype === 'custom' ? 'block' : 'none';
+
+      // Recalculate cost
+      calcJobCost();
+      // Update composition info
+      onFertFarmChange();
+    }
+
+    async function onFertFarmChange() {
+      const farmId = document.getElementById('fjFarm').value;
+      const ftype = document.getElementById('fjType').value;
+      if (!farmId) return;
+      const infoEl = document.getElementById('fjCompositionInfo');
+      try {
+        const comps = await api('GET', `/api/fertilizer-compositions?farm_id=${farmId}`);
+        const match = comps.find(c => c.fertilizer_type === ftype);
+        if (match) {
+          const farm = S.farms.find(f => f.id === farmId);
+          const trees = farm?.num_trees || 0;
+          const totalQty = match.unit === 'g'
+            ? (match.qty_per_tree * trees / 1000).toFixed(1)
+            : (match.qty_per_tree * trees).toFixed(1);
+          const dispUnit = match.unit === 'g' ? 'kg' : match.unit;
+          infoEl.innerHTML = `<div class="saved-price-row" style="flex-direction:column;align-items:flex-start;gap:4px">
+        <span>📋 Preset found: <strong style="color:var(--lime)">${match.qty_per_tree} ${match.unit}/tree</strong></span>
+        <span>→ For ${trees} trees: <strong style="color:var(--lime)">${totalQty} ${dispUnit} total</strong></span>
+        ${match.application_method ? `<span style="font-size:11px">Method: ${match.application_method}</span>` : ''}
+        <button class="btn btn-g" style="padding:3px 10px;font-size:11px;margin-top:4px" onclick="applyCompositionQty(${totalQty},'${dispUnit}')">Use this quantity</button>
+      </div>`;
+        } else {
+          infoEl.innerHTML = `<span style="font-size:12px;color:var(--fog)">No dosage preset saved for this farm + fertilizer. <a href="#" onclick="switchTab('fertilizers','fertilizers-compositions');return false;" style="color:var(--husk)">Set one →</a></span>`;
+        }
+      } catch { infoEl.innerHTML = '<span style="font-size:12px;color:var(--fog)">Could not load presets</span>'; }
+    }
+
+    function applyCompositionQty(qty, unit) {
+      document.getElementById('fjQty').value = qty;
+      calcJobCost();
+      toast(`✅ Quantity set to ${qty} ${unit} from preset`);
+    }
+
+    function calcJobCost() {
+      const qty = parseFloat(document.getElementById('fjQty').value) || 0;
+      const price = parseFloat(document.getElementById('fjPrice').value) || 0;
+      document.getElementById('fjTotalCost').value = qty && price ? (qty * price).toFixed(2) : '';
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      const qEl = document.getElementById('fjQty');
+      const pEl = document.getElementById('fjPrice');
+      if (qEl) qEl.addEventListener('input', calcJobCost);
+      if (pEl) pEl.addEventListener('input', calcJobCost);
+    });
+
+    async function startFertJob() {
+      const ftype = document.getElementById('fjType').value;
+      const cat = S.catalogue[ftype] || {};
+      const unit = cat.unit || 'kg';
+      const custom = document.getElementById('fjCustomName').value.trim();
+      const b = {
+        farm_id: document.getElementById('fjFarm').value,
+        fertilizer_type: ftype,
+        custom_name: custom,
+        unit: unit,
+        total_qty: parseFloat(document.getElementById('fjQty').value) || 0,
+        price_per_unit: parseFloat(document.getElementById('fjPrice').value) || 0,
+        start_date: document.getElementById('fjDate').value,
+        notes: document.getElementById('fjNotes').value,
+      };
+      if (!b.farm_id || !b.total_qty || !b.price_per_unit || !b.start_date)
+        return toast('Farm, quantity, price and start date are required', true);
+      try {
+        const job = await api('POST', '/api/fertilizer-jobs', b);
+        toast(`✅ Application job started! ID: ${job.job_id}`);
+        switchTab('fertilizers', 'fertilizers-jobs');
+        loadFertilizers();
+        // Reset form
+        document.getElementById('fjQty').value = '';
+        document.getElementById('fjPrice').value = '';
+        document.getElementById('fjTotalCost').value = '';
+        document.getElementById('fjNotes').value = '';
+      } catch (e) { toast(e.message, true); }
+    }
+
+    // ── Session modal ──────────────────────────────────────────────────────────
+    function openSessionModal(jobId, label, currentPct) {
+      document.getElementById('sessJobId').value = jobId;
+      document.getElementById('sessDate').value = today();
+      document.getElementById('sessPct').value = '';
+      document.getElementById('sessArea').value = '';
+      document.getElementById('sessNotes').value = '';
+      document.getElementById('sessJobInfo').innerHTML =
+        `<strong style="color:var(--cream)">${label}</strong><br>
+     Current progress: <strong style="color:var(--lime)">${currentPct.toFixed(0)}%</strong> complete`;
+      updateSessHint();
+      document.getElementById('sessType').onchange = updateSessHint;
+      document.getElementById('sessPct').oninput = updateSessHint;
+      openModal('modalSession');
+    }
+
+    function updateSessHint() {
+      const type = document.getElementById('sessType').value;
+      const label = document.getElementById('sessPctLabel');
+      const hint = document.getElementById('sessPctHint');
+      const val = parseFloat(document.getElementById('sessPct').value) || 0;
+      if (type === 'delta') {
+        label.textContent = '% done today (will be added to total)';
+        hint.textContent = val > 0 ? `→ e.g. 20% means 20% of the farm done today` : '';
+      } else {
+        label.textContent = 'New total completion %';
+        hint.textContent = val > 0 ? `→ Total will be set to ${val}%` : '';
+      }
+    }
+
+    async function submitSession() {
+      const jobId = document.getElementById('sessJobId').value;
+      const pct = parseFloat(document.getElementById('sessPct').value) || 0;
+      if (!pct || pct <= 0) return toast('Enter a progress percentage', true);
+      const b = {
+        date: document.getElementById('sessDate').value,
+        progress_pct: pct,
+        progress_type: document.getElementById('sessType').value,
+        area_covered: document.getElementById('sessArea').value,
+        notes: document.getElementById('sessNotes').value,
+      };
+      try {
+        const job = await api('POST', `/api/fertilizer-jobs/${jobId}/session`, b);
+        toast(job.status === 'completed' ? `✅ Job marked 100% complete!` : `✅ Progress updated — ${job.progress_pct.toFixed(0)}% total`);
+        closeModal('modalSession');
+        loadFertilizers();
+      } catch (e) { toast(e.message, true); }
+    }
+
+    async function deleteFertilizerJob(jobId) {
+      if (!confirm('DELETE FERTILIZER LOG: Are you sure you want to delete this specific fertilizer application job? \n\nThis cannot be undone!')) return;
+      try {
+        await api('DELETE', `/api/fertilizer-jobs/${jobId}`);
+        toast('🗑 Fertilizer job deleted successfully');
+        loadFertilizers();
+      }
+      catch (e) { toast(e.message, true); }
+    }
+
+    // ── Compositions ───────────────────────────────────────────────────────────
+    async function loadCompositions() {
+      if (!S.farms.length) S.farms = await api('GET', '/api/farms');
+      populateFarmSelects(S.farms);
+      try {
+        const comps = await api('GET', '/api/fertilizer-compositions');
+        const el = document.getElementById('compositionsList');
+        if (!comps.length) { el.innerHTML = '<div style="color:var(--fog);font-size:13px">No presets saved yet.</div>'; return; }
+        el.innerHTML = `<table class="data-table"><thead><tr><th>Farm</th><th>Fertilizer</th><th>Qty / Tree</th><th>Method</th><th>Updated</th><th></th></tr></thead><tbody>
+    ${comps.map(c => `<tr>
+      <td>${c.farm_name}</td>
+      <td><span class="badge ba">${c.fertilizer_label || c.fertilizer_type}</span></td>
+      <td style="font-family:'DM Mono',monospace">${c.qty_per_tree} ${c.unit}</td>
+      <td style="color:var(--fog);font-size:12px">${c.application_method || '—'}</td>
+      <td style="font-size:11px;color:var(--fog)">${(c.updated_at || '').slice(0, 10)}</td>
+      <td><button class="btn btn-r" style="padding:3px 8px;font-size:11px" onclick="deleteComposition('${c.id}')">🗑</button></td>
+    </tr>`).join('')}</tbody></table>`;
+      } catch (e) { toast(e.message, true); }
+    }
+
+    async function saveComposition() {
+      const b = {
+        farm_id: document.getElementById('cpFarm').value,
+        fertilizer_type: document.getElementById('cpType').value,
+        qty_per_tree: parseFloat(document.getElementById('cpQty').value) || 0,
+        unit: document.getElementById('cpUnit').value,
+        application_method: document.getElementById('cpMethod').value,
+        notes: document.getElementById('cpNotes').value,
+      };
+      if (!b.farm_id || !b.qty_per_tree) return toast('Farm and quantity are required', true);
+      try {
+        await api('POST', '/api/fertilizer-compositions', b);
+        toast('✅ Dosage preset saved!');
+        loadCompositions();
+        document.getElementById('cpQty').value = '';
+        document.getElementById('cpMethod').value = '';
+        document.getElementById('cpNotes').value = '';
+      } catch (e) { toast(e.message, true); }
+    }
+
+    async function deleteComposition(cid) {
+      if (!confirm('Delete this dosage preset?')) return;
+      try { await api('DELETE', `/api/fertilizer-compositions/${cid}`); toast('Deleted'); loadCompositions(); }
+      catch (e) { toast(e.message, true); }
+    }
+
+    // ── Fertilizer prices form ─────────────────────────────────────────────────
+    async function loadFertPriceForm() {
+      const cat = Object.keys(S.catalogue).length ? S.catalogue : await api('GET', '/api/fertilizer-catalogue');
+      S.catalogue = cat;
+      const el = document.getElementById('fertPriceForm');
+      el.innerHTML = Object.entries(cat).map(([k, v]) => `
+    <div class="fg">
+      <label>${v.label} <span style="font-size:10px;color:var(--fog)">(₹/${v.unit})</span></label>
+      <input type="number" step="0.01" id="fp-${k}" value="${v.saved_price || ''}" placeholder="Enter price">
+    </div>`).join('');
+    }
+
+    async function saveFertPrices() {
+      const cat = S.catalogue;
+      const body = {};
+      Object.keys(cat).forEach(k => {
+        const el = document.getElementById('fp-' + k);
+        if (el && el.value) body[k] = parseFloat(el.value);
+      });
+      try { await api('POST', '/api/fertilizer-prices', body); toast('✅ Prices saved!'); S.catalogue = await api('GET', '/api/fertilizer-catalogue'); }
+      catch (e) { toast(e.message, true); }
+    }
+
+    // ── Calculator ─────────────────────────────────────────────────────────────
+    async function loadCalcWeather() {
+      try {
+        const s = await api('GET', '/api/settings');
+        let loc = s.weather_location || '';
+        if (!loc) {
+          const farmer = await api('GET', '/api/farmer');
+          if (farmer) loc = farmer.district || farmer.village || '';
+        }
+        if (!loc) return;
+        const wx = await api('GET', `/api/weather?location=${encodeURIComponent(loc)}`);
+        const r7 = wx.rain_7day_mm || 0;
+        if (r7 >= 40) {
+          document.getElementById('calcWeatherWarn').innerHTML = `<div class="alert-item ${r7 >= 100 ? 'danger' : 'warning'}"><div class="alert-icon">🌧</div><div><div class="alert-farm">Rain Warning — ${wx.location}</div><div class="alert-msg">${r7}mm over 7 days. ${r7 >= 100 ? 'Copra drying not advisable!' : 'Monitor conditions.'}</div></div></div>`;
+        }
+      } catch { }
+    }
+
+    function syncGoodNuts() {
+      const n = document.getElementById('cNuts').value;
+      const g = document.getElementById('cGoodNuts');
+      if (!g.value || parseInt(g.value) > parseInt(n)) g.value = n;
+    }
+    function showWeightHint(inputId, hintId) {
+      const v = parseFloat(document.getElementById(inputId).value);
+      document.getElementById(hintId).textContent = v > 0 ? `→ Avg per nut: ${(v / 10 * 1000).toFixed(1)} g` : '';
+    }
+
+    async function loadHarvestToCalc() {
+      const hid = document.getElementById('cHarvestId').value.trim().toUpperCase();
+      if (!hid) return;
+      try {
+        const harvests = await api('GET', '/api/harvests');
+        const h = harvests.find(x => (x.harvest_id || '').toUpperCase() === hid);
+        if (!h) return toast('Harvest ID not found', true);
+        document.getElementById('cNuts').value = h.nuts_harvested;
+        document.getElementById('cGoodNuts').value = h.good_nuts || h.nuts_harvested;
+        document.getElementById('cExpenses').value = h.total_expenses;
+        toast(`✅ Loaded ${h.harvest_id}`);
+      } catch (e) { toast(e.message, true); }
+    }
+
+    async function runCalculator() {
+      const b = {
+        num_nuts: parseInt(document.getElementById('cNuts').value) || 0,
+        good_nuts: parseInt(document.getElementById('cGoodNuts').value) || 0,
+        harvest_expenses: parseFloat(document.getElementById('cExpenses').value) || 0,
+        price_per_nut: parseFloat(document.getElementById('cPriceNut').value) || 0,
+        avg_weight_10: parseFloat(document.getElementById('cWeight10').value) || 1,
+        price_per_ton: parseFloat(document.getElementById('cPriceTon').value) || 0,
+        avg_dehusked_10: parseFloat(document.getElementById('cCopraWeight10').value) || 1,
+        price_shell: parseFloat(document.getElementById('cShell').value) || 0,
+        price_g1: parseFloat(document.getElementById('cG1').value) || 0,
+        price_g2: parseFloat(document.getElementById('cG2').value) || 0,
+        price_g3: parseFloat(document.getElementById('cG3').value) || 0,
+      };
+      if (!b.num_nuts) return toast('Enter total nut count', true);
+      try { showCalcResults(await api('POST', '/api/calculator', b), b); }
+      catch (e) { toast(e.message, true); }
+    }
+
+    function showCalcResults(r, body) {
+      const best = ['pieces', 'weight', 'copra'];
+      const labels = ['① Sell as Pieces', '② Sell by Weight', '③ Sell as Copra'];
+      document.getElementById('calcResults').style.display = 'block';
+      document.getElementById('calcCards').innerHTML = best.map((m, i) => {
+        const d = r[m]; const isBest = m === r.best;
+        const rev = d.revenue || d.total_revenue || 0;
+        const exp = d.expenses || d.total_expenses || 0;
+        return `<div class="calc-card${isBest ? ' best' : ''}">
+      ${isBest ? '<div class="calc-crown">👑 Best Option</div>' : ''}
+      <div class="calc-mode">${labels[i]}</div>
+      <div class="calc-profit ${d.profit >= 0 ? 'pos' : 'neg'}">${fmt(d.profit)}</div>
+      <div style="font-size:11px;color:var(--fog)">Net Profit</div>
+      <div class="calc-br">
+        <div class="cr"><span class="ck">Revenue</span><span class="cv g">${fmt(rev)}</span></div>
+        <div class="cr"><span class="ck">Expenses</span><span class="cv r">${fmt(exp)}</span></div>
+        <div class="cr"><span class="ck">Per Nut</span><span class="cv">${fmtF(d.revenue_per_nut || 0)}</span></div>
+        ${m === 'weight' ? `<div class="cr"><span class="ck">Total Wt</span><span class="cv">${d.total_weight_kg || 0} kg</span></div>` : ''}
+      </div>
+    </div>`;
+      }).join('');
+      const cd = r.copra; const s = r.settings;
+      document.getElementById('copraBreakdownCard').innerHTML = `
+    <div class="card-title">🥥 Copra Detailed Breakdown</div>
+    <div style="background:rgba(0,0,0,.2);border:1px solid var(--card-border);border-radius:8px;padding:14px;margin-bottom:10px">
+      <div class="cr"><span class="ck">Total Dehusked</span><span class="cv">${cd.total_dehusked_kg} kg</span></div>
+      <div class="cr"><span class="ck">Shell (${(s.shell_weight_fraction * 100).toFixed(0)}%)</span><span class="cv">${cd.shell_weight_kg} kg → <span class="g">${fmt(cd.shell_revenue)}</span></span></div>
+      <div class="cr"><span class="ck">Dry Copra (${(s.copra_conversion_ratio * 100).toFixed(0)}%)</span><span class="cv">${cd.total_copra_kg} kg</span></div>
+      <div class="cr"><span class="ck">G1 (${s.copra_yield_grade1_pct}%) ${cd.g1_kg}kg</span><span class="cv g">${fmt(cd.g1_kg * (body.price_g1 || 0))}</span></div>
+      <div class="cr"><span class="ck">G2 (${s.copra_yield_grade2_pct}%) ${cd.g2_kg}kg</span><span class="cv g">${fmt(cd.g2_kg * (body.price_g2 || 0))}</span></div>
+      <div class="cr"><span class="ck">G3 (${s.copra_yield_grade3_pct}%) ${cd.g3_kg}kg</span><span class="cv g">${fmt(cd.g3_kg * (body.price_g3 || 0))}</span></div>
+      <div class="cr"><span class="ck">Husk Revenue</span><span class="cv g">${fmt(cd.husk_revenue)}</span></div>
+      <div class="cr" style="border-top:1px solid var(--card-border);margin-top:6px;padding-top:6px;font-weight:500"><span class="ck">Net Profit</span><span class="cv ${cd.profit >= 0 ? 'g' : 'r'}">${fmt(cd.profit)}</span></div>
+    </div>`;
+    }
+
+    function clearCalculator() {
+      ['cNuts', 'cGoodNuts', 'cExpenses', 'cPriceNut', 'cWeight10', 'cPriceTon', 'cCopraWeight10', 'cShell', 'cG1', 'cG2', 'cG3', 'cHarvestId']
+        .forEach(id => { const el = document.getElementById(id); if (el) el.value = id === 'cExpenses' ? '0' : ''; });
+      document.getElementById('calcResults').style.display = 'none';
+      document.getElementById('perNutWeightHint').textContent = '';
+      document.getElementById('copraPerNutHint').textContent = '';
+    }
+
+    // ── Predictions ────────────────────────────────────────────────────────────
+    async function loadPredictions() {
+      const el = document.getElementById('predContent');
+      try {
+        const stats = await api('GET', '/api/stats');
+        if (!stats.predictions.length) {
+          el.innerHTML = `<div class="card" style="color:var(--fog);font-size:13px;line-height:1.8"><div class="card-title">🔮 Yield Predictions</div>⚠ No harvest data yet.<br>Log at least <strong>2 harvests</strong> per farm to see predictions.</div>`;
+          return;
+        }
+        el.innerHTML = `<div class="pred-grid">${stats.predictions.map(p => {
+          const tc = p.trend === 'improving' ? 'ti' : p.trend === 'declining' ? 'td' : 'ts';
+          const te = p.trend === 'improving' ? '📈' : p.trend === 'declining' ? '📉' : '➡';
+          return `<div class="pred-card">
+        <div class="pred-farm">🌴 ${p.farm_name}</div>
+        <div class="pred-stat"><span class="pred-key">Harvests</span><span class="pred-val">${p.harvests_count}</span></div>
+        <div class="pred-stat"><span class="pred-key">Avg Nuts</span><span class="pred-val">${p.avg_nuts.toLocaleString()}</span></div>
+        <div class="pred-stat"><span class="pred-key">Avg Nuts/Tree</span><span class="pred-val">${p.avg_per_tree}</span></div>
+        <div class="pred-stat"><span class="pred-key">Avg Profit</span><span class="pred-val" style="color:var(--lime)">${fmt(p.avg_profit)}</span></div>
+        <div class="pred-stat"><span class="pred-key">Trend</span><span class="pred-val ${tc}">${te} ${p.trend.charAt(0).toUpperCase() + p.trend.slice(1)}</span></div>
+        <div class="pred-stat"><span class="pred-key">Next Range</span><span class="pred-val">${p.next_nuts_lo.toLocaleString()} – ${p.next_nuts_hi.toLocaleString()}</span></div>
+        <div class="pred-stat"><span class="pred-key">Accuracy</span><span class="pred-val ${p.accuracy === 'moderate' ? 'ti' : 'td'}">${p.accuracy === 'moderate' ? '✅ Moderate' : '⚠ Low'}</span></div>
+      </div>`;
+        }).join('')}</div>`;
+      } catch (e) { toast(e.message, true); }
+    }
+
+    // ── Profile ────────────────────────────────────────────────────────────────
+    async function loadProfile() {
+      try {
+        const f = await api('GET', '/api/farmer');
+        if (!f) return;
+        ['pName', 'pPhone', 'pEmail', 'pVillage', 'pDistrict', 'pState'].forEach(id => {
+          const key = id.slice(1).toLowerCase();
+          const el = document.getElementById(id);
+          if (el) el.value = f[key] || f[id.slice(1).toLowerCase()] || '';
+        });
+        document.getElementById('pName').value = f.name || '';
+        document.getElementById('pPhone').value = f.phone || '';
+        document.getElementById('pEmail').value = f.email || '';
+        document.getElementById('pVillage').value = f.village || '';
+        document.getElementById('pDistrict').value = f.district || '';
+        document.getElementById('pState').value = f.state || '';
+        document.getElementById('pClimateDetected').textContent = f.climate_type ? `🌿 Climate: ${f.climate_type}` : '';
+      } catch { }
+    }
+
+    async function saveFarmer() {
+      const b = {
+        name: document.getElementById('pName').value.trim(),
+        phone: document.getElementById('pPhone').value.trim(),
+        email: document.getElementById('pEmail').value.trim(),
+        village: document.getElementById('pVillage').value.trim(),
+        district: document.getElementById('pDistrict').value.trim(),
+        state: document.getElementById('pState').value.trim(),
+      };
+      if (!b.name || !b.phone || !b.village || !b.district)
+        return toast('Name, phone, village and district are required', true);
+      try {
+        const saved = await api('POST', '/api/farmer', b);
+        document.getElementById('farmerName').textContent = saved.name;
+        document.getElementById('pClimateDetected').textContent = `🌿 Climate: ${saved.climate_type}`;
+        toast('✅ Profile saved!');
+      } catch (e) { toast(e.message, true); }
+    }
+
+    // ── Settings ───────────────────────────────────────────────────────────────
+    const SETTING_LABELS = {
+      copra_dehusking_charge_per_nut: 'Dehusking charge (₹/nut)',
+      copra_splitting_charge_per_nut: 'Splitting charge (₹/nut)',
+      copra_removal_charge_per_nut: 'Kernel removal (₹/nut)',
+      copra_transport_charge_per_nut: 'Transport (₹/nut)',
+      copra_other_charge_per_nut: 'Other costs (₹/nut)',
+      husk_selling_price_per_1000: 'Husk price (₹/1000 nuts)',
+      copra_yield_grade1_pct: 'Copra Grade 1 yield (%)',
+      copra_yield_grade2_pct: 'Copra Grade 2 yield (%)',
+      copra_yield_grade3_pct: 'Copra Grade 3 yield (%)',
+      shell_weight_fraction: 'Shell weight fraction (0.15=15%)',
+      copra_conversion_ratio: 'Copra conversion ratio (0.30=30%)',
+      weather_location: 'Dashboard Weather Location (Optional)',
+    };
+
+    async function loadSettings() {
+      try {
+        const s = await api('GET', '/api/settings');
+        document.getElementById('settingsForm').innerHTML = Object.entries(SETTING_LABELS).map(([k, lbl]) => {
+          if (k === 'weather_location') {
+            return `<div class="fg"><label>${lbl}</label><input type="text" id="setting-${k}" value="${s[k] || ''}" placeholder="e.g. Coimbatore"></div>`;
+          }
+          return `<div class="fg"><label>${lbl}</label><input type="number" step="0.01" id="setting-${k}" value="${s[k] || 0}"></div>`;
+        }).join('');
+      } catch (e) { toast(e.message, true); }
+    }
+
+    async function saveSettings() {
+      const body = {};
+      Object.keys(SETTING_LABELS).forEach(k => {
+        const el = document.getElementById('setting-' + k);
+        if (el) {
+          if (k === 'weather_location') {
+            body[k] = el.value.trim();
+          } else {
+            body[k] = parseFloat(el.value) || 0;
+          }
+        }
+      });
+      try { await api('POST', '/api/settings', body); toast('✅ Settings saved!'); }
+      catch (e) { toast(e.message, true); }
+    }
+
+    // ── Init ────────────────────────────────────────────────────────────────────
+    (async () => {
+      document.getElementById('hDate').value = today();
+      try {
+        const f = await api('GET', '/api/farmer');
+        document.getElementById('farmerName').textContent = f ? f.name : 'Setup Profile →';
+        if (f) S.farmerDistrict = f.district || f.village || '';
+      } catch { }
+      loadDashboard();
+    })();
+  </script>
+</body>
+
+</html>
