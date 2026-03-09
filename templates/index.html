@@ -1320,6 +1320,142 @@
       flex: 1
     }
 
+    /* Responsive */
+    @media (max-width: 980px) {
+      .app {
+        flex-direction: column;
+        min-height: 100dvh;
+      }
+
+      .sidebar {
+        width: 100%;
+        height: auto;
+        position: static;
+        border-right: none;
+        border-bottom: 1px solid var(--card-border);
+        padding-bottom: 12px;
+      }
+
+      .sidebar-logo {
+        padding: 14px 14px 12px;
+      }
+
+      .nav {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        padding: 10px 10px 6px;
+      }
+
+      .nav-section {
+        display: none;
+      }
+
+      .nav-item {
+        border-left: none;
+        border-bottom: 2px solid transparent;
+        border-radius: 8px;
+        padding: 8px 12px;
+        white-space: nowrap;
+        flex: 0 0 auto;
+      }
+
+      .nav-item.active {
+        border-left-color: transparent;
+        border-bottom-color: var(--husk);
+      }
+
+      .sidebar-season {
+        margin: 8px 10px 0;
+      }
+
+      .main {
+        overflow: visible;
+      }
+
+      .topbar {
+        padding: 12px 14px;
+      }
+
+      .topbar-title {
+        font-size: 18px;
+      }
+
+      .farmer-chip {
+        font-size: 11px;
+        padding: 5px 10px;
+      }
+
+      .content {
+        padding: 14px;
+      }
+
+      .stats-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .stat-value {
+        font-size: 22px;
+      }
+
+      .exp-break-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .proj-chart {
+        grid-template-columns: repeat(5, minmax(84px, 1fr));
+        min-height: 150px;
+      }
+
+      .calc-results,
+      .pred-grid,
+      .wx-forecast {
+        grid-template-columns: 1fr;
+      }
+
+      .card {
+        padding: 14px;
+        overflow-x: auto;
+      }
+
+      .data-table {
+        min-width: 760px;
+      }
+
+      .modal {
+        padding: 18px 16px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .stats-row {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar {
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .weather-main {
+        gap: 12px;
+      }
+
+      .weather-temp {
+        font-size: 36px;
+      }
+
+      .weather-stats {
+        gap: 10px;
+      }
+
+      .btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+
     /* Stability override: disable blur filters that cause intermittent GPU clipping */
     .sidebar,
     .topbar,
