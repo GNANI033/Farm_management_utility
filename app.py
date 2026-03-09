@@ -4,7 +4,7 @@ CocoTrack Web UI — Flask wrapper around core.py
 Run: python app.py  →  http://localhost:3333
 """
 from flask import Flask, render_template, request, jsonify
-import sys, os, uuid, re
+import sys, os, uuid, re, secrets
 sys.path.insert(0, os.path.dirname(__file__))
 
 from core import (
@@ -19,7 +19,17 @@ import pyotp, qrcode, io, base64
 from flask import session
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "cocotrack-dev-secret-123")
+app.secret_key = os.environ.get("FLASK_SECRET_KEY") or secrets.token_urlsafe(48)
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=os.environ.get("COOKIE_SECURE", "0") == "1",
+    MAX_CONTENT_LENGTH=262_144,
+)
+
+LOGIN_WINDOW_SECONDS = 10 * 60
+MAX_LOGIN_ATTEMPTS = 10
+_login_attempts = {}
 
 # ─── Fertilizer master catalogue ─────────────────────────────────────────────
 # key → label, how often to reapply, buying unit, default price
@@ -44,6 +54,53 @@ def ok(payload=None):
 
 def err(msg, code=400):
     return jsonify({"ok": False, "error": msg}), code
+
+def _iter_strings(value):
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for v in value.values():
+            yield from _iter_strings(v)
+    elif isinstance(value, list):
+        for v in value:
+            yield from _iter_strings(v)
+
+
+def _payload_has_unsafe_text(payload):
+    for s in _iter_strings(payload):
+        low = s.lower()
+        if len(s) > 5000:
+            return "Input too long"
+        if "\x00" in s:
+            return "Invalid characters in input"
+        if "<" in s or ">" in s:
+            return "HTML tags are not allowed"
+        if any(x in low for x in ("javascript:", "data:text/html", "onerror=", "onload=", "<script")):
+            return "Potentially unsafe input detected"
+    return None
+
+
+def _is_json_write_request():
+    return request.path.startswith("/api/") and request.method in {"POST", "PUT", "PATCH"}
+
+
+def _is_mutating_request():
+    return request.path.startswith("/api/") and request.method in {"POST", "PUT", "PATCH", "DELETE"}
+
+
+def _record_login_attempt(ip):
+    now = datetime.utcnow().timestamp()
+    attempts = [t for t in _login_attempts.get(ip, []) if now - t < LOGIN_WINDOW_SECONDS]
+    attempts.append(now)
+    _login_attempts[ip] = attempts
+
+
+def _is_login_rate_limited(ip):
+    now = datetime.utcnow().timestamp()
+    attempts = [t for t in _login_attempts.get(ip, []) if now - t < LOGIN_WINDOW_SECONDS]
+    _login_attempts[ip] = attempts
+    return len(attempts) >= MAX_LOGIN_ATTEMPTS
+
 
 def strip_rich(s):
     return re.sub(r'\[/?[^\]]+\]', '', str(s))
@@ -271,6 +328,41 @@ def _build_harvest_projection(harvests):
         "labels": ["Previous", "Current", "Predicted +1", "Predicted +2", "Predicted +3"],
         "values": [prev_nuts, current_nuts] + predicted,
     }
+
+
+def _build_farm_performance(harvests, farms):
+    farm_map = {f.get("id"): f for f in farms}
+    farm_totals = {}
+    for h in harvests:
+        fid = h.get("farm_id")
+        if not fid:
+            continue
+        farm_totals[fid] = farm_totals.get(fid, 0.0) + float(h.get("nuts_harvested", 0) or 0)
+
+    ranked = []
+    total_nuts = 0.0
+    total_trees = 0
+    for fid, nuts in farm_totals.items():
+        farm = farm_map.get(fid, {})
+        trees = int(farm.get("num_trees", 0) or 0)
+        if trees <= 0:
+            continue
+        ranked.append({
+            "farm_id": fid,
+            "farm_name": farm.get("name") or "Unknown Farm",
+            "total_nuts": int(round(nuts)),
+            "total_trees": trees,
+            "nuts_per_tree": round(nuts / trees, 2),
+        })
+        total_nuts += nuts
+        total_trees += trees
+
+    ranked.sort(key=lambda x: x["nuts_per_tree"], reverse=True)
+    return {
+        "top_farm": ranked[0] if ranked else None,
+        "worst_farm": ranked[-1] if ranked else None,
+        "average_nuts_per_tree": round(total_nuts / total_trees, 2) if total_trees > 0 else 0.0,
+    }
 # ─── Pages ────────────────────────────────────────────────────────────────────
 @app.route("/")
 def index():
@@ -279,17 +371,58 @@ def index():
 # ─── Auth ────────────────────────────────────────────────────────────────────
 @app.before_request
 def check_auth():
+    if _is_json_write_request():
+        if not request.is_json:
+            return err("JSON body required", 415)
+        body = request.get_json(silent=True)
+        if body is None:
+            return err("Invalid JSON payload", 400)
+        unsafe = _payload_has_unsafe_text(body)
+        if unsafe:
+            return err(unsafe, 400)
+
+    if _is_mutating_request() and not request.path.startswith("/api/auth/"):
+        expected = session.get("csrf_token")
+        provided = request.headers.get("X-CSRF-Token", "")
+        if not expected or not secrets.compare_digest(expected, provided):
+            return err("CSRF validation failed", 403)
+
     # Public paths
     if request.path == "/" or request.path.startswith("/api/auth/"):
         return
     # Check if setup is needed
     data = load_data()
     if not data.get("totp_secret"):
-        if request.path == "/api/auth/setup": return
+        if request.path == "/api/auth/setup":
+            return
         return err("Setup required", 401)
     # Check session
     if not session.get("authenticated"):
         return err("Auth required", 401)
+
+
+@app.after_request
+def apply_security_headers(resp):
+    resp.headers["X-Content-Type-Options"] = "nosniff"
+    resp.headers["X-Frame-Options"] = "DENY"
+    resp.headers["Referrer-Policy"] = "same-origin"
+    resp.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    resp.headers["Cache-Control"] = "no-store"
+    # Keep CSP compatible with current inline scripts/styles while blocking remote script injection.
+    resp.headers["Content-Security-Policy"] = "default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+    if request.is_secure:
+        resp.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
+    return resp
+
+@app.route("/api/auth/csrf", methods=["GET"])
+def auth_csrf():
+    if not session.get("authenticated"):
+        return err("Auth required", 401)
+    token = session.get("csrf_token")
+    if not token:
+        token = secrets.token_urlsafe(32)
+        session["csrf_token"] = token
+    return ok({"token": token})
 
 @app.route("/api/auth/status")
 def auth_status():
@@ -304,23 +437,30 @@ def auth_setup():
     data = load_data()
     if data.get("totp_secret"):
         return err("Setup already completed")
-    
-    # Generate secret
+
+    if os.environ.get("ALLOW_AUTH_SETUP", "0") != "1":
+        return err("Initial setup is disabled. Set ALLOW_AUTH_SETUP=1 temporarily.", 403)
+
+    setup_token = os.environ.get("SETUP_TOKEN")
+    if setup_token:
+        provided = request.headers.get("X-Setup-Token", "")
+        if not secrets.compare_digest(setup_token, provided):
+            return err("Invalid setup token", 403)
+
     secret = pyotp.random_base32()
     data["totp_secret"] = secret
     save_data(data)
-    
-    # Generate QR Code
+
     farmer = data.get("farmer", {})
     name = farmer.get("name", "Farmer")
     uri = pyotp.totp.TOTP(secret).provisioning_uri(name=name, issuer_name="CocoTrack")
-    
+
     img = qrcode.make(uri)
     buf = io.BytesIO()
     img.save(buf)
     qr_b64 = base64.b64encode(buf.getvalue()).decode()
-    
-    return ok({"qr_code": f"data:image/png;base64,{qr_b64}", "secret": secret})
+
+    return ok({"qr_code": f"data:image/png;base64,{qr_b64}"})
 
 @app.route("/api/auth/login", methods=["POST"])
 def auth_login():
@@ -328,20 +468,30 @@ def auth_login():
     secret = data.get("totp_secret")
     if not secret:
         return err("Setup required", 401)
-    
-    code = request.json.get("code")
+
+    ip = (request.headers.get("X-Forwarded-For", request.remote_addr or "unknown").split(",")[0]).strip()
+    if _is_login_rate_limited(ip):
+        return err("Too many login attempts. Try again in 10 minutes.", 429)
+
+    code = str((request.json or {}).get("code", "")).strip()
     if not code:
         return err("Code required")
-    
+
     totp = pyotp.TOTP(secret)
     if totp.verify(code):
+        _login_attempts.pop(ip, None)
         session["authenticated"] = True
+        session["csrf_token"] = secrets.token_urlsafe(32)
+        session.permanent = True
         return ok({"authenticated": True})
-    return err("Invalid code")
+
+    _record_login_attempt(ip)
+    return err("Invalid code", 401)
 
 @app.route("/api/auth/logout", methods=["POST"])
 def auth_logout():
     session.pop("authenticated", None)
+    session.pop("csrf_token", None)
     return ok({"authenticated": False})
 
 # ─── Farmer ───────────────────────────────────────────────────────────────────
@@ -1077,6 +1227,7 @@ def get_stats():
     total_profit = round(total_revenue - total_expenses, 2)
     net_return_pct = round((total_profit / total_revenue) * 100, 2) if total_revenue > 0 else 0.0
     expense_insights = _build_expense_insights(data)
+    farm_performance = _build_farm_performance(harvests, farms)
 
     return ok({"total_farms":len(farms),
                "total_trees":sum(f.get("num_trees",0) for f in farms),
@@ -1091,12 +1242,13 @@ def get_stats():
                "harvest_interval":{"lo":lo,"hi":hi},
                "harvest_projection":_build_harvest_projection(harvests),
                "expense_insights":expense_insights,
+               "farm_performance":farm_performance,
                "predictions":preds})
 
 if __name__ == "__main__":
     print("\nCocoTrack Web UI starting...")
     print("   Open http://localhost:3333 in your browser\n")
-    app.run(debug=True, port=3333)
+    app.run(debug=False, host=os.environ.get("HOST", "127.0.0.1"), port=3333)
 
 
 

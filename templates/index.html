@@ -237,6 +237,11 @@
       border: 1px solid var(--card-border);
       border-radius: var(--radius);
       backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      position: relative;
+      isolation: isolate;
+      transform: translateZ(0);
+      backface-visibility: hidden;
       padding: 20px 24px;
       margin-bottom: 20px
     }
@@ -265,6 +270,11 @@
       border-radius: var(--radius);
       padding: 18px 20px;
       backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      position: relative;
+      isolation: isolate;
+      transform: translateZ(0);
+      backface-visibility: hidden;
       transition: transform var(--transition)
     }
 
@@ -524,6 +534,46 @@
       color: #e05c4b
     }
 
+    .wx-forecast {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(140px, 1fr));
+      gap: 10px;
+      margin-top: 14px
+    }
+
+    .wx-day {
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: rgba(0, 0, 0, .16)
+    }
+
+    .wx-day-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--cream)
+    }
+
+    .wx-day-date {
+      font-size: 10px;
+      color: var(--fog);
+      margin-top: 2px
+    }
+
+    .wx-day-temps {
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--cream)
+    }
+
+    .wx-day-rain {
+      margin-top: 4px;
+      font-size: 11px;
+      color: var(--fog)
+    }
+
     /* Table */
     .data-table {
       width: 100%;
@@ -749,14 +799,13 @@
       align-items: center;
       justify-content: center;
       backdrop-filter: blur(20px);
-      transition: opacity 0.5s ease;
+      -webkit-backdrop-filter: blur(20px);
       overflow-y: auto;
       padding: 20px;
     }
 
     #authOverlay.hidden {
-      opacity: 0;
-      pointer-events: none;
+      display: none;
     }
 
     .auth-card {
@@ -952,13 +1001,11 @@
 
     @keyframes fadeIn {
       from {
-        opacity: 0;
-        transform: translateY(6px)
+        opacity: 0
       }
 
       to {
-        opacity: 1;
-        transform: none
+        opacity: 1
       }
     }
 
@@ -1273,6 +1320,16 @@
       flex: 1
     }
 
+    /* Stability override: disable blur filters that cause intermittent GPU clipping */
+    .sidebar,
+    .topbar,
+    .card,
+    .stat-card,
+    #authOverlay {
+      -webkit-backdrop-filter: none !important;
+      backdrop-filter: none !important;
+    }
+
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px
@@ -1398,6 +1455,14 @@
           <div class="card">
             <div class="card-title">📈 Harvest Trend (Prev, Current + Next 3)</div>
             <div id="harvestProjectionChart"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">🌴 Farm Performance (Nuts/Tree)</div>
+            <div id="farmPerformanceCard">
+              <div class="loading">
+                <div class="spinner"></div>Loading…
+              </div>
+            </div>
           </div>
           <div class="card">
             <div class="card-title">🥥 Recent Harvests</div>
@@ -1843,10 +1908,16 @@
   <script>
     // ── State ──────────────────────────────────────────────────────────────────
     const S = { farms: [], harvests: [], catalogue: {} };
+    let CSRF_TOKEN = '';
 
     // ── API ────────────────────────────────────────────────────────────────────
     async function api(method, path, body) {
-      const opts = { method, headers: { 'Content-Type': 'application/json' } };
+      const headers = { 'Content-Type': 'application/json' };
+      const upperMethod = String(method || 'GET').toUpperCase();
+      const needsCsrf = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(upperMethod) && !path.startsWith('/api/auth/');
+      if (needsCsrf && CSRF_TOKEN) headers['X-CSRF-Token'] = CSRF_TOKEN;
+
+      const opts = { method, headers };
       if (body) opts.body = JSON.stringify(body);
       const res = await fetch(path, opts);
 
@@ -1858,6 +1929,15 @@
       const json = await res.json();
       if (!json.ok) throw new Error(json.error || 'Request failed');
       return json.data;
+    }
+
+    async function fetchCsrfToken() {
+      try {
+        const data = await api('GET', '/api/auth/csrf');
+        CSRF_TOKEN = data?.token || '';
+      } catch {
+        CSRF_TOKEN = '';
+      }
     }
 
     // ── Nav ────────────────────────────────────────────────────────────────────
@@ -1915,6 +1995,7 @@
       try {
         const status = await api('GET', '/api/auth/status');
         if (status.authenticated) {
+          await fetchCsrfToken();
           hideAuthOverlay();
           return true;
         }
@@ -1930,7 +2011,14 @@
 
       if (setupRequired && !document.querySelector('#qrContainer img')) {
         api('POST', '/api/auth/setup').then(data => {
-          document.getElementById('qrContainer').innerHTML = `<img src="${data.qr_code}" alt="QR Code">`;
+          const qc = document.getElementById('qrContainer');
+          qc.innerHTML = '';
+          const img = document.createElement('img');
+          img.src = data.qr_code;
+          img.alt = 'QR Code';
+          qc.appendChild(img);
+        }).catch((e) => {
+          toast(e.message || 'Setup is disabled', true);
         });
       }
     }
@@ -1946,6 +2034,7 @@
 
       try {
         await api('POST', '/api/auth/login', { code });
+        await fetchCsrfToken();
         toast('✅ Authentication successful!');
         hideAuthOverlay();
         loadDashboard();
@@ -1996,6 +2085,14 @@
 
     function renderWeather(wx, el) {
       const bc = rainClass(wx.rain_7day_mm || 0);
+      const fc = Array.isArray(wx.forecast_3days) ? wx.forecast_3days : [];
+      const forecastHtml = fc.length ? `<div class="wx-forecast">${fc.map(d => `<div class="wx-day">
+        <div class="wx-day-top"><span>${d.day || ''}</span><span>${wxIcon(d.weather_code)}</span></div>
+        <div class="wx-day-date">${d.date || ''}</div>
+        <div class="wx-day-temps">${d.temp_max ?? '—'}° / ${d.temp_min ?? '—'}°</div>
+        <div class="wx-day-rain">Rain: ${Number(d.rain_mm || 0).toFixed(1)} mm</div>
+      </div>`).join('')}</div>` : '';
+
       el.innerHTML = `<div class="weather-card">
     <div class="weather-main">
       <div style="font-size:48px;line-height:1">${wxIcon(wx.weather_code)}</div>
@@ -2013,6 +2110,7 @@
       <div><div class="ws-label">7-Day</div><div class="ws-val" style="color:${bc === 'danger' ? '#e05c4b' : bc === 'warning' ? 'var(--sun)' : 'var(--lime)'}">${wx.rain_7day_mm} mm</div></div>
       <div><div class="ws-label">Max/Min</div><div class="ws-val">${wx.daily_max}° / ${wx.daily_min}°</div></div>
     </div>
+    ${forecastHtml}
     <div class="rain-badge ${bc}">${wx.advisory}</div>
     <div style="font-size:10px;color:var(--fog);margin-top:8px;opacity:.6">Updated: ${wx.fetched_at || ''}</div>
   </div>`;
@@ -2117,6 +2215,26 @@
               <div class="p" style="margin-top:8px">Previous: <span class="v">${fmt(ins.harvest_previous_expense || 0)}</span></div>
               <div class="chip ${chipClass(ins.harvest_vs_prev_pct)}">Change: ${fmtPct(ins.harvest_vs_prev_pct)}</div>
             </div>
+          </div>`;
+        }
+        const fpEl = document.getElementById('farmPerformanceCard');
+        if (fpEl) {
+          const fp = stats.farm_performance || {};
+          const top = fp.top_farm;
+          const worst = fp.worst_farm;
+          const avg = Number(fp.average_nuts_per_tree || 0).toFixed(2);
+          const renderFarm = (title, farm, tone) => {
+            if (!farm) {
+              return `<div style="padding:12px 14px;border:1px solid var(--card-border);border-radius:10px;background:rgba(0,0,0,.18)"><div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--fog)">${title}</div><div style="margin-top:6px;color:var(--fog);font-size:13px">No harvest data yet.</div></div>`;
+            }
+            return `<div style="padding:12px 14px;border:1px solid var(--card-border);border-radius:10px;background:rgba(0,0,0,.18)"><div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--fog)">${title}</div><div style="margin-top:6px;font-size:15px;color:${tone};font-weight:600">${farm.farm_name}</div><div style="font-size:12px;color:var(--fog);margin-top:4px">${Number(farm.nuts_per_tree || 0).toFixed(2)} nuts/tree</div><div style="font-size:11px;color:var(--fog);margin-top:2px">Total nuts: ${Number(farm.total_nuts || 0).toLocaleString()} | Trees: ${Number(farm.total_trees || 0).toLocaleString()}</div></div>`;
+          };
+          fpEl.innerHTML = `<div style="display:grid;grid-template-columns:repeat(2,minmax(220px,1fr));gap:12px">
+            ${renderFarm('Top Performing Farm', top, 'var(--lime)')}
+            ${renderFarm('Worst Performing Farm', worst, '#e69138')}
+          </div>
+          <div style="margin-top:12px;padding:10px 12px;border:1px solid var(--card-border);border-radius:10px;background:rgba(122,182,72,.08);font-size:13px;color:var(--cream)">
+            Average nuts per tree: <strong style="color:var(--husk)">${avg}</strong>
           </div>`;
         }
         const hEl = document.getElementById('recentHarvests');

@@ -65,7 +65,7 @@ def fetch_weather(location_name: str) -> dict | None:
             "latitude":  lat,
             "longitude": lon,
             "current":   "temperature_2m,relative_humidity_2m,precipitation,rain,wind_speed_10m,weather_code",
-            "daily":     "precipitation_sum,rain_sum,temperature_2m_max,temperature_2m_min",
+            "daily":     "precipitation_sum,rain_sum,temperature_2m_max,temperature_2m_min,weather_code",
             "forecast_days": 7,
             "timezone":  "Asia/Kolkata"
         })
@@ -87,14 +87,41 @@ def fetch_weather(location_name: str) -> dict | None:
         }
         desc = WMO.get(cur.get("weather_code", 0), f"Code {cur.get('weather_code',0)}")
 
+        def wmo_desc(code):
+            return WMO.get(int(code or 0), f"Code {int(code or 0)}")
+
         rain_today = float((daily.get("rain_sum") or [0])[0] or 0)
         rain_7day  = round(sum(float(v or 0) for v in (daily.get("rain_sum") or [0]*7)[:7]), 1)
+
+        dates = daily.get("time") or []
+        maxs = daily.get("temperature_2m_max") or []
+        mins = daily.get("temperature_2m_min") or []
+        rains = daily.get("rain_sum") or []
+        dcodes = daily.get("weather_code") or []
+        forecast_3days = []
+        for i in range(min(3, len(dates))):
+            code = dcodes[i] if i < len(dcodes) else 0
+            day_label = dates[i]
+            try:
+                day_label = datetime.strptime(dates[i], "%Y-%m-%d").strftime("%a")
+            except Exception:
+                pass
+            forecast_3days.append({
+                "date": dates[i],
+                "day": day_label,
+                "weather_code": int(code or 0),
+                "description": wmo_desc(code),
+                "temp_max": maxs[i] if i < len(maxs) else None,
+                "temp_min": mins[i] if i < len(mins) else None,
+                "rain_mm": round(float(rains[i] or 0), 1) if i < len(rains) else 0.0,
+            })
 
         return {
             "location":      loc_label,
             "lat":           lat, "lon": lon,
             "temp_c":        cur.get("temperature_2m"),
             "humidity_pct":  cur.get("relative_humidity_2m"),
+            "weather_code":  int(cur.get("weather_code", 0) or 0),
             "rain_mm":       float(cur.get("rain", 0) or 0),
             "rain_today_mm": rain_today,
             "rain_7day_mm":  rain_7day,
@@ -102,22 +129,28 @@ def fetch_weather(location_name: str) -> dict | None:
             "description":   desc,
             "daily_max":     (daily.get("temperature_2m_max") or [None])[0],
             "daily_min":     (daily.get("temperature_2m_min") or [None])[0],
+            "forecast_3days": forecast_3days,
             "fetched_at":    datetime.now().strftime("%Y-%m-%d %H:%M"),
         }
     except Exception:
         return None
 
 def rain_advisory(wx: dict) -> str:
-    r7 = wx.get("rain_7day_mm", 0)
-    rt = wx.get("rain_today_mm", 0)
-    if r7 >= 100:
-        return "[bold red]🌧 HEAVY RAIN EXPECTED ({r7}mm/7days) — Delay harvest if possible, skip copra drying[/bold red]".format(r7=r7)
-    elif r7 >= 40:
-        return f"[yellow]🌦 MODERATE RAIN ({r7}mm/7days) — Monitor; protect dried copra[/yellow]"
-    elif rt > 5:
-        return f"[cyan]🌂 Light rain today ({rt}mm) — Nuts may be wet; factor in drying time[/cyan]"
+    r7 = float(wx.get("rain_7day_mm", 0) or 0)
+    rt = float(wx.get("rain_today_mm", 0) or 0)
+    f3 = wx.get("forecast_3days") or []
+    rain3 = round(sum(float((d or {}).get("rain_mm", 0) or 0) for d in f3[:3]), 1)
+    heavy_days_3 = sum(1 for d in f3[:3] if float((d or {}).get("rain_mm", 0) or 0) >= 10)
+
+    # Copra drying decision should prioritize the near-term (next 3 days).
+    if rain3 >= 30 or heavy_days_3 >= 2:
+        return f"[bold red]🌧 Wet next 3 days ({rain3}mm) — Not a good window for copra drying[/bold red]"
+    elif rain3 >= 12 or rt > 5:
+        return f"[yellow]🌦 Some rain in next 3 days ({rain3}mm) — Dry only with cover/storage backup[/yellow]"
+    elif r7 >= 100:
+        return "[yellow]🌧 Heavy rain likely later this week ({r7}mm/7days) — Finish drying early and store safely[/yellow]".format(r7=r7)
     else:
-        return f"[green]☀  Dry conditions — Good for harvesting and copra drying[/green]"
+        return f"[green]☀  Next 3 days look dry ({rain3}mm) — Good time to dry copra[/green]"
 
 def show_weather_widget(wx: dict):
     if not wx:
