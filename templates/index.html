@@ -2223,6 +2223,8 @@
           const top = fp.top_farm;
           const worst = fp.worst_farm;
           const avg = Number(fp.average_nuts_per_tree || 0).toFixed(2);
+          const avgYear = Number(fp.average_nuts_per_tree_year || 0).toFixed(2);
+          const perfYear = fp.year || new Date().getFullYear();
           const renderFarm = (title, farm, tone) => {
             if (!farm) {
               return `<div style="padding:12px 14px;border:1px solid var(--card-border);border-radius:10px;background:rgba(0,0,0,.18)"><div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--fog)">${title}</div><div style="margin-top:6px;color:var(--fog);font-size:13px">No harvest data yet.</div></div>`;
@@ -2234,7 +2236,8 @@
             ${renderFarm('Worst Performing Farm', worst, '#e69138')}
           </div>
           <div style="margin-top:12px;padding:10px 12px;border:1px solid var(--card-border);border-radius:10px;background:rgba(122,182,72,.08);font-size:13px;color:var(--cream)">
-            Average nuts per tree: <strong style="color:var(--husk)">${avg}</strong>
+            Average nuts per tree: <strong style="color:var(--husk)">${avg}</strong><br>
+            Avg nuts/tree/year (${perfYear}): <strong style="color:var(--husk)">${avgYear}</strong>
           </div>`;
         }
         const hEl = document.getElementById('recentHarvests');

@@ -333,11 +333,19 @@ def _build_harvest_projection(harvests):
 def _build_farm_performance(harvests, farms):
     farm_map = {f.get("id"): f for f in farms}
     farm_totals = {}
+    current_year = datetime.now().year
+    farm_totals_year = {}
+
     for h in harvests:
         fid = h.get("farm_id")
         if not fid:
             continue
-        farm_totals[fid] = farm_totals.get(fid, 0.0) + float(h.get("nuts_harvested", 0) or 0)
+        nuts = float(h.get("nuts_harvested", 0) or 0)
+        farm_totals[fid] = farm_totals.get(fid, 0.0) + nuts
+
+        hd = _parse_date_safe(h.get("harvest_date"))
+        if hd and hd.year == current_year:
+            farm_totals_year[fid] = farm_totals_year.get(fid, 0.0) + nuts
 
     ranked = []
     total_nuts = 0.0
@@ -357,12 +365,25 @@ def _build_farm_performance(harvests, farms):
         total_nuts += nuts
         total_trees += trees
 
+    total_nuts_year = 0.0
+    total_trees_year = 0
+    for fid, nuts in farm_totals_year.items():
+        farm = farm_map.get(fid, {})
+        trees = int(farm.get("num_trees", 0) or 0)
+        if trees <= 0:
+            continue
+        total_nuts_year += nuts
+        total_trees_year += trees
+
     ranked.sort(key=lambda x: x["nuts_per_tree"], reverse=True)
     return {
         "top_farm": ranked[0] if ranked else None,
         "worst_farm": ranked[-1] if ranked else None,
         "average_nuts_per_tree": round(total_nuts / total_trees, 2) if total_trees > 0 else 0.0,
+        "average_nuts_per_tree_year": round(total_nuts_year / total_trees_year, 2) if total_trees_year > 0 else 0.0,
+        "year": current_year,
     }
+
 # ─── Pages ────────────────────────────────────────────────────────────────────
 @app.route("/")
 def index():
