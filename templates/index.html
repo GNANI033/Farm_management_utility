@@ -1399,65 +1399,28 @@
           <!-- Tab: New Application -->
           <div id="tab-fertilizers-new" style="display:none">
             <div class="card">
-              <div class="card-title">🧪 Start Fertilizer Application</div>
-              <div class="form-grid">
+              <div class="card-title">🧪 Log Fertilizer Application</div>
+              <div class="form-grid c3">
                 <div class="fg"><label>Farm *</label><select id="fjFarm" onchange="onFertFarmChange()"></select></div>
-                <div class="fg"><label>Fertilizer Type *</label>
-                  <select id="fjType" onchange="onFertTypeChange()">
-                    <option value="urea">Urea</option>
-                    <option value="dap">DAP</option>
-                    <option value="mop">MOP / Red Potash</option>
-                    <option value="ssp">SSP</option>
-                    <option value="fym">FYM (Farm Yard Manure)</option>
-                    <option value="neem_cake">Neem Cake</option>
-                    <option value="vermicompost">Vermicompost</option>
-                    <option value="boron">Boron</option>
-                    <option value="zinc_sulphate">Zinc Sulphate</option>
-                    <option value="potassium_nitrate">Potassium Nitrate</option>
-                    <option value="custom">Custom / Other</option>
-                  </select>
-                </div>
-                <div class="fg" id="fjCustomNameG" style="display:none"><label>Custom Fertilizer Name</label><input
-                    id="fjCustomName" placeholder="e.g. Micromax"></div>
+                <div class="fg"><label>Dosage Preset (by age) *</label><select id="fjPreset" onchange="onPresetChange()"></select></div>
+                <div class="fg"><label>Date *</label><input id="fjDate" type="date"></div>
+                <div class="fg"><label>% Farm Completed Today *</label><input id="fjProgress" type="number" min="1" max="100" placeholder="20"></div>
+                <div class="fg"><label>Today's Expense (₹) *</label><input id="fjExpense" type="number" step="1" placeholder="2500"></div>
+                <div class="fg"><label>Area Covered (optional)</label><input id="fjArea" placeholder="e.g. north block"></div>
               </div>
 
-              <!-- Saved price info + price input -->
-              <div id="fjPriceInfo" style="margin-top:14px"></div>
-              <div class="form-grid" style="margin-top:10px">
-                <div class="fg">
-                  <label id="fjQtyLabel">Total Quantity (kg) *</label>
-                  <input id="fjQty" type="number" step="0.1" placeholder="50">
-                  <span class="hint" id="fjQtyHint"></span>
-                </div>
-                <div class="fg">
-                  <label>Price per <span id="fjUnitLabel">kg</span> (₹) *</label>
-                  <input id="fjPrice" type="number" step="1" placeholder="0">
-                  <span class="hint" id="fjPriceHint">Will be saved for next time</span>
-                </div>
-                <div class="fg">
-                  <label>Total Cost (₹)</label>
-                  <input id="fjTotalCost" type="number" readonly style="opacity:.6">
-                </div>
-                <div class="fg"><label>Start Date *</label><input id="fjDate" type="date"></div>
-              </div>
-
-              <!-- Composition preset -->
               <div class="sdiv">
-                <hr><span>Dosage Preset (optional)</span>
+                <hr><span>Preset Details</span>
                 <hr>
               </div>
-              <div id="fjCompositionRow" style="margin-bottom:14px">
-                <div style="font-size:12px;color:var(--fog);margin-bottom:8px">Pre-saved dosage for this
-                  farm+fertilizer:</div>
-                <div id="fjCompositionInfo" style="font-size:13px;color:var(--fog)">Select a farm first</div>
-              </div>
+              <div id="fjCompositionInfo" style="font-size:13px;color:var(--fog);margin-bottom:14px">Pick a farm to auto-match presets by tree age</div>
 
               <div class="form-grid">
                 <div class="fg s2"><label>Notes</label><textarea id="fjNotes"
                     placeholder="Any special instructions, weather conditions…"></textarea></div>
               </div>
               <div class="btn-row">
-                <button class="btn btn-p" onclick="startFertJob()">🚀 Start Application Job</button>
+                <button class="btn btn-p" onclick="startFertJob()">✅ Save Application Progress</button>
                 <button class="btn btn-g" onclick="switchTab('fertilizers','fertilizers-jobs')">Cancel</button>
               </div>
             </div>
@@ -1466,36 +1429,22 @@
           <!-- Tab: Dosage Presets -->
           <div id="tab-fertilizers-compositions" style="display:none">
             <div class="card" style="margin-bottom:16px">
-              <div class="card-title">📋 Save Dosage Preset</div>
-              <p style="font-size:12px;color:var(--fog);margin-bottom:14px">Set once — how much fertilizer per tree.
-                This gets recalled automatically when logging.</p>
+              <div class="card-title">📋 Save Age-Based Dosage Preset</div>
+              <p style="font-size:12px;color:var(--fog);margin-bottom:14px">Set once per tree-age range. Add all fertilizer quantities in one preset.</p>
               <div class="form-grid c3">
-                <div class="fg"><label>Farm</label><select id="cpFarm"></select></div>
-                <div class="fg"><label>Fertilizer Type</label>
-                  <select id="cpType">
-                    <option value="urea">Urea</option>
-                    <option value="dap">DAP</option>
-                    <option value="mop">MOP / Red Potash</option>
-                    <option value="ssp">SSP</option>
-                    <option value="fym">FYM</option>
-                    <option value="neem_cake">Neem Cake</option>
-                    <option value="vermicompost">Vermicompost</option>
-                    <option value="boron">Boron</option>
-                    <option value="zinc_sulphate">Zinc Sulphate</option>
-                    <option value="potassium_nitrate">Potassium Nitrate</option>
-                    <option value="custom">Custom</option>
-                  </select>
-                </div>
-                <div class="fg"><label>Qty per Tree</label><input id="cpQty" type="number" step="0.1"
-                    placeholder="e.g. 500"></div>
-                <div class="fg"><label>Unit</label><select id="cpUnit">
-                    <option value="g">grams (g)</option>
-                    <option value="kg">kilograms (kg)</option>
-                  </select></div>
-                <div class="fg"><label>Application Method</label><input id="cpMethod" placeholder="ring, broadcast…">
-                </div>
+                <div class="fg"><label>Preset Name *</label><input id="cpPresetName" placeholder="e.g. Yearly Full Dose"></div>
+                <div class="fg"><label>Tree Age From (years) *</label><input id="cpAgeMin" type="number" min="0" step="1" placeholder="5"></div>
+                <div class="fg"><label>Tree Age To (years) *</label><input id="cpAgeMax" type="number" min="0" step="1" placeholder="15"></div>
+                <div class="fg"><label>Application Method</label><input id="cpMethod" placeholder="ring, broadcast…"></div>
                 <div class="fg"><label>Notes</label><input id="cpNotes" placeholder="Optional"></div>
               </div>
+
+              <div class="sdiv">
+                <hr><span>Fertilizer Qty Per Tree</span>
+                <hr>
+              </div>
+              <div class="form-grid c3" id="cpFertilizerGrid"></div>
+
               <div class="btn-row"><button class="btn btn-p" onclick="saveComposition()">💾 Save Preset</button></div>
             </div>
             <div id="compositionsList">
@@ -1607,7 +1556,7 @@
         <!-- Settings -->
         <div class="page" id="page-settings">
           <div class="card">
-            <div class="card-title">⚙️ Copra Processing Costs (₹ per nut)</div>
+            <div class="card-title">⚙️ Settings</div>
             <div class="form-grid c3" id="settingsForm"></div>
             <div class="btn-row">
               <button class="btn btn-p" onclick="saveSettings()">💾 Save Settings</button>
@@ -1704,6 +1653,7 @@
         </div>
         <div class="fg"><label>Area Covered (optional)</label><input id="sessArea"
             placeholder="e.g. North block, rows 1-20"></div>
+        <div class="fg"><label>Today's Expense (₹, optional)</label><input id="sessExpense" type="number" step="1" placeholder="0"></div>
         <div class="fg"><label>Notes (optional)</label><input id="sessNotes" placeholder="Weather, observations…"></div>
       </div>
       <div class="btn-row">
@@ -1893,7 +1843,7 @@
     }
 
     function populateFarmSelects(farms) {
-      ['hFarm', 'fjFarm', 'cpFarm', 'efFarm_ignore'].forEach(id => {
+      ['hFarm', 'fjFarm', 'efFarm_ignore'].forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
         el.innerHTML = farms.map(f => `<option value="${f.id}">${f.name} (${f.id})</option>`).join('');
@@ -1901,8 +1851,6 @@
       // fjFarm is handled separately since it triggers onchange
       const ff = document.getElementById('fjFarm');
       if (ff) ff.innerHTML = farms.map(f => `<option value="${f.id}">${f.name} (${f.id})</option>`).join('');
-      const cp = document.getElementById('cpFarm');
-      if (cp) cp.innerHTML = farms.map(f => `<option value="${f.id}">${f.name} (${f.id})</option>`).join('');
     }
 
     // ── Dashboard ──────────────────────────────────────────────────────────────
@@ -2249,6 +2197,8 @@
       }
     }
 
+        let _activeCompositions = [];
+
     async function initNewJobForm() {
       if (!Object.keys(S.catalogue).length) {
         _fertCatalogue = await api('GET', '/api/fertilizer-catalogue');
@@ -2257,111 +2207,115 @@
       if (!S.farms.length) S.farms = await api('GET', '/api/farms');
       populateFarmSelects(S.farms);
       document.getElementById('fjDate').value = today();
-      onFertTypeChange(); // set unit label
+      document.getElementById('fjProgress').value = '';
+      document.getElementById('fjExpense').value = '';
+      document.getElementById('fjArea').value = '';
+      document.getElementById('fjNotes').value = '';
+      renderCompositionInputs();
+      onFertFarmChange();
     }
 
-    function onFertTypeChange() {
-      const ftype = document.getElementById('fjType').value;
-      const cat = S.catalogue[ftype] || {};
-      const unit = cat.unit || 'kg';
-      const savedPrice = cat.saved_price || 0;
+    function renderCompositionInputs() {
+      const grid = document.getElementById('cpFertilizerGrid');
+      if (!grid || !Object.keys(S.catalogue).length) return;
+      const rows = Object.entries(S.catalogue).filter(([k]) => k !== 'custom').map(([k, v]) => `
+        <div class="fg">
+          <label>${v.label} <span style="font-size:10px;color:var(--fog)">(${v.unit}/tree)</span></label>
+          <input id="cpqty-${k}" type="number" step="0.01" min="0" placeholder="0">
+        </div>`);
+      grid.innerHTML = rows.join('');
+    }
 
-      // Unit label
-      document.getElementById('fjUnitLabel').textContent = unit;
-      document.getElementById('fjQtyLabel').textContent = unit === 'ton'
-        ? 'Total Quantity (tons) *' : `Total Quantity (${unit}) *`;
-
-      // Saved price hint
-      const priceInfo = document.getElementById('fjPriceInfo');
-      if (savedPrice > 0) {
-        priceInfo.innerHTML = `<div class="saved-price-row">💾 Last recorded price: <strong>₹${savedPrice} / ${unit}</strong> &nbsp;— update below if rates have changed</div>`;
-        document.getElementById('fjPrice').value = savedPrice;
-      } else {
-        priceInfo.innerHTML = `<div class="saved-price-row" style="border-color:rgba(212,168,75,.2);background:rgba(212,168,75,.05)">No price saved yet for <strong>${cat.label || ftype}</strong> — enter current market rate below</div>`;
-        document.getElementById('fjPrice').value = '';
-      }
-
-      // Custom name field
-      document.getElementById('fjCustomNameG').style.display = ftype === 'custom' ? 'block' : 'none';
-
-      // Recalculate cost
-      calcJobCost();
-      // Update composition info
-      onFertFarmChange();
+    function getFarmAge(farmId) {
+      const farm = S.farms.find(f => f.id === farmId);
+      return parseFloat(farm?.tree_age_years || 0);
     }
 
     async function onFertFarmChange() {
       const farmId = document.getElementById('fjFarm').value;
-      const ftype = document.getElementById('fjType').value;
-      if (!farmId) return;
+      const presetEl = document.getElementById('fjPreset');
       const infoEl = document.getElementById('fjCompositionInfo');
+      if (!farmId) {
+        presetEl.innerHTML = '<option value="">Select farm first</option>';
+        infoEl.textContent = 'Pick a farm to auto-match presets by tree age';
+        return;
+      }
+
       try {
-        const comps = await api('GET', `/api/fertilizer-compositions?farm_id=${farmId}`);
-        const match = comps.find(c => c.fertilizer_type === ftype);
-        if (match) {
-          const farm = S.farms.find(f => f.id === farmId);
-          const trees = farm?.num_trees || 0;
-          const totalQty = match.unit === 'g'
-            ? (match.qty_per_tree * trees / 1000).toFixed(1)
-            : (match.qty_per_tree * trees).toFixed(1);
-          const dispUnit = match.unit === 'g' ? 'kg' : match.unit;
-          infoEl.innerHTML = `<div class="saved-price-row" style="flex-direction:column;align-items:flex-start;gap:4px">
-        <span>📋 Preset found: <strong style="color:var(--lime)">${match.qty_per_tree} ${match.unit}/tree</strong></span>
-        <span>→ For ${trees} trees: <strong style="color:var(--lime)">${totalQty} ${dispUnit} total</strong></span>
-        ${match.application_method ? `<span style="font-size:11px">Method: ${match.application_method}</span>` : ''}
-        <button class="btn btn-g" style="padding:3px 10px;font-size:11px;margin-top:4px" onclick="applyCompositionQty(${totalQty},'${dispUnit}')">Use this quantity</button>
-      </div>`;
-        } else {
-          infoEl.innerHTML = `<span style="font-size:12px;color:var(--fog)">No dosage preset saved for this farm + fertilizer. <a href="#" onclick="switchTab('fertilizers','fertilizers-compositions');return false;" style="color:var(--husk)">Set one →</a></span>`;
+        const age = getFarmAge(farmId);
+        const comps = await api('GET', `/api/fertilizer-compositions`);
+        _activeCompositions = comps.filter(c => age >= Number(c.age_min_years || 0) && age <= Number(c.age_max_years || 0));
+
+        if (!_activeCompositions.length) {
+          presetEl.innerHTML = '<option value="">No matching preset</option>';
+          infoEl.innerHTML = `<span style="font-size:12px;color:var(--fog)">No age-based preset found for this farm (tree age: ${age} years). <a href="#" onclick="switchTab('fertilizers','fertilizers-compositions');return false;" style="color:var(--husk)">Create one →</a></span>`;
+          return;
         }
-      } catch { infoEl.innerHTML = '<span style="font-size:12px;color:var(--fog)">Could not load presets</span>'; }
+
+        presetEl.innerHTML = _activeCompositions.map(c => `<option value="${c.id}">${c.preset_name} (${c.age_min_years}-${c.age_max_years} yrs)</option>`).join('');
+        onPresetChange();
+      } catch {
+        presetEl.innerHTML = '<option value="">Error loading presets</option>';
+        infoEl.innerHTML = '<span style="font-size:12px;color:var(--fog)">Could not load presets</span>';
+      }
     }
 
-    function applyCompositionQty(qty, unit) {
-      document.getElementById('fjQty').value = qty;
-      calcJobCost();
-      toast(`✅ Quantity set to ${qty} ${unit} from preset`);
-    }
+    function onPresetChange() {
+      const presetId = document.getElementById('fjPreset').value;
+      const infoEl = document.getElementById('fjCompositionInfo');
+      const comp = _activeCompositions.find(c => c.id === presetId);
+      if (!comp) {
+        infoEl.textContent = 'Select a preset to see details';
+        return;
+      }
 
-    function calcJobCost() {
-      const qty = parseFloat(document.getElementById('fjQty').value) || 0;
-      const price = parseFloat(document.getElementById('fjPrice').value) || 0;
-      document.getElementById('fjTotalCost').value = qty && price ? (qty * price).toFixed(2) : '';
+      const farmId = document.getElementById('fjFarm').value;
+      const farm = S.farms.find(f => f.id === farmId);
+      const trees = Number(farm?.num_trees || 0);
+      const rows = (comp.fertilizers || []).map(f => {
+        const perTree = Number(f.qty_per_tree || 0);
+        const total = (perTree * trees).toFixed(2);
+        return `<div style="display:flex;justify-content:space-between;gap:8px"><span>${f.fertilizer_label || f.fertilizer_type}</span><span style="font-family:'DM Mono',monospace">${perTree} ${f.unit}/tree → ${total} ${f.unit}</span></div>`;
+      }).join('');
+
+      infoEl.innerHTML = `<div class="saved-price-row" style="flex-direction:column;align-items:flex-start;gap:6px">
+        <div><strong style="color:var(--cream)">${comp.preset_name}</strong> · ${comp.age_min_years}-${comp.age_max_years} years</div>
+        <div style="font-size:12px;color:var(--fog)">Farm trees: ${trees}</div>
+        ${rows || '<div style="font-size:12px;color:var(--fog)">No fertilizers in this preset</div>'}
+      </div>`;
     }
-    document.addEventListener('DOMContentLoaded', () => {
-      const qEl = document.getElementById('fjQty');
-      const pEl = document.getElementById('fjPrice');
-      if (qEl) qEl.addEventListener('input', calcJobCost);
-      if (pEl) pEl.addEventListener('input', calcJobCost);
-    });
 
     async function startFertJob() {
-      const ftype = document.getElementById('fjType').value;
-      const cat = S.catalogue[ftype] || {};
-      const unit = cat.unit || 'kg';
-      const custom = document.getElementById('fjCustomName').value.trim();
+      const farmId = document.getElementById('fjFarm').value;
+      const presetId = document.getElementById('fjPreset').value;
+      const preset = _activeCompositions.find(c => c.id === presetId);
+      const progress = parseFloat(document.getElementById('fjProgress').value) || 0;
+      const expense = parseFloat(document.getElementById('fjExpense').value) || 0;
       const b = {
-        farm_id: document.getElementById('fjFarm').value,
-        fertilizer_type: ftype,
-        custom_name: custom,
-        unit: unit,
-        total_qty: parseFloat(document.getElementById('fjQty').value) || 0,
-        price_per_unit: parseFloat(document.getElementById('fjPrice').value) || 0,
+        farm_id: farmId,
+        fertilizer_type: 'custom',
+        preset_name: preset?.preset_name || 'Age-based fertilizer program',
+        composition_id: preset?.id || '',
+        composition_snapshot: preset?.fertilizers || [],
+        unit: 'application',
+        total_qty: 1,
+        total_cost: expense,
+        progress_pct: progress,
+        progress_type: 'set',
+        session_expense: expense,
+        area_covered: document.getElementById('fjArea').value,
         start_date: document.getElementById('fjDate').value,
         notes: document.getElementById('fjNotes').value,
       };
-      if (!b.farm_id || !b.total_qty || !b.price_per_unit || !b.start_date)
-        return toast('Farm, quantity, price and start date are required', true);
+
+      if (!farmId || !presetId || !b.start_date || progress <= 0 || expense <= 0)
+        return toast('Farm, preset, date, completion % and expense are required', true);
+
       try {
         const job = await api('POST', '/api/fertilizer-jobs', b);
-        toast(`✅ Application job started! ID: ${job.job_id}`);
+        toast(`✅ Application saved! ID: ${job.job_id}`);
         switchTab('fertilizers', 'fertilizers-jobs');
         loadFertilizers();
-        // Reset form
-        document.getElementById('fjQty').value = '';
-        document.getElementById('fjPrice').value = '';
-        document.getElementById('fjTotalCost').value = '';
-        document.getElementById('fjNotes').value = '';
       } catch (e) { toast(e.message, true); }
     }
 
@@ -2372,6 +2326,7 @@
       document.getElementById('sessPct').value = '';
       document.getElementById('sessArea').value = '';
       document.getElementById('sessNotes').value = '';
+      document.getElementById('sessExpense').value = '';
       document.getElementById('sessJobInfo').innerHTML =
         `<strong style="color:var(--cream)">${label}</strong><br>
      Current progress: <strong style="color:var(--lime)">${currentPct.toFixed(0)}%</strong> complete`;
@@ -2405,6 +2360,7 @@
         progress_type: document.getElementById('sessType').value,
         area_covered: document.getElementById('sessArea').value,
         notes: document.getElementById('sessNotes').value,
+        expense: parseFloat(document.getElementById('sessExpense').value) || 0,
       };
       try {
         const job = await api('POST', `/api/fertilizer-jobs/${jobId}/session`, b);
@@ -2425,42 +2381,68 @@
     }
 
     // ── Compositions ───────────────────────────────────────────────────────────
-    async function loadCompositions() {
+        async function loadCompositions() {
+      if (!Object.keys(S.catalogue).length) {
+        _fertCatalogue = await api('GET', '/api/fertilizer-catalogue');
+        S.catalogue = _fertCatalogue;
+      }
       if (!S.farms.length) S.farms = await api('GET', '/api/farms');
       populateFarmSelects(S.farms);
+      renderCompositionInputs();
       try {
         const comps = await api('GET', '/api/fertilizer-compositions');
         const el = document.getElementById('compositionsList');
         if (!comps.length) { el.innerHTML = '<div style="color:var(--fog);font-size:13px">No presets saved yet.</div>'; return; }
-        el.innerHTML = `<table class="data-table"><thead><tr><th>Farm</th><th>Fertilizer</th><th>Qty / Tree</th><th>Method</th><th>Updated</th><th></th></tr></thead><tbody>
-    ${comps.map(c => `<tr>
-      <td>${c.farm_name}</td>
-      <td><span class="badge ba">${c.fertilizer_label || c.fertilizer_type}</span></td>
-      <td style="font-family:'DM Mono',monospace">${c.qty_per_tree} ${c.unit}</td>
+        el.innerHTML = `<table class="data-table"><thead><tr><th>Preset</th><th>Age Range</th><th>Fertilizers</th><th>Method</th><th>Updated</th><th></th></tr></thead><tbody>
+    ${comps.map(c => {
+            const ferts = (c.fertilizers || []).map(f => `${f.fertilizer_label || f.fertilizer_type}: ${f.qty_per_tree} ${f.unit}/tree`).join('<br>');
+            return `<tr>
+      <td><span class="badge ba">${c.preset_name || 'Preset'}</span></td>
+      <td style="font-family:'DM Mono',monospace">${c.age_min_years}-${c.age_max_years} yrs</td>
+      <td style="font-size:12px">${ferts || '—'}</td>
       <td style="color:var(--fog);font-size:12px">${c.application_method || '—'}</td>
       <td style="font-size:11px;color:var(--fog)">${(c.updated_at || '').slice(0, 10)}</td>
       <td><button class="btn btn-r" style="padding:3px 8px;font-size:11px" onclick="deleteComposition('${c.id}')">🗑</button></td>
-    </tr>`).join('')}</tbody></table>`;
+    </tr>`;
+          }).join('')}</tbody></table>`;
       } catch (e) { toast(e.message, true); }
     }
 
     async function saveComposition() {
+      const fertilizers = Object.keys(S.catalogue)
+        .filter(k => k !== 'custom')
+        .map(k => ({
+          fertilizer_type: k,
+          qty_per_tree: parseFloat((document.getElementById(`cpqty-${k}`) || {}).value) || 0,
+          unit: S.catalogue[k]?.unit || 'kg',
+        }))
+        .filter(f => f.qty_per_tree > 0);
+
       const b = {
-        farm_id: document.getElementById('cpFarm').value,
-        fertilizer_type: document.getElementById('cpType').value,
-        qty_per_tree: parseFloat(document.getElementById('cpQty').value) || 0,
-        unit: document.getElementById('cpUnit').value,
+        preset_name: document.getElementById('cpPresetName').value.trim(),
+        age_min_years: parseFloat(document.getElementById('cpAgeMin').value) || 0,
+        age_max_years: parseFloat(document.getElementById('cpAgeMax').value) || 0,
+        fertilizers,
         application_method: document.getElementById('cpMethod').value,
         notes: document.getElementById('cpNotes').value,
       };
-      if (!b.farm_id || !b.qty_per_tree) return toast('Farm and quantity are required', true);
+
+      if (!b.preset_name || !fertilizers.length || b.age_max_years < b.age_min_years)
+        return toast('Preset name, valid age range and at least one fertilizer qty are required', true);
+
       try {
         await api('POST', '/api/fertilizer-compositions', b);
-        toast('✅ Dosage preset saved!');
+        toast('✅ Age-based dosage preset saved!');
         loadCompositions();
-        document.getElementById('cpQty').value = '';
+        document.getElementById('cpPresetName').value = '';
+        document.getElementById('cpAgeMin').value = '';
+        document.getElementById('cpAgeMax').value = '';
         document.getElementById('cpMethod').value = '';
         document.getElementById('cpNotes').value = '';
+        Object.keys(S.catalogue).forEach(k => {
+          const el = document.getElementById(`cpqty-${k}`);
+          if (el) el.value = '';
+        });
       } catch (e) { toast(e.message, true); }
     }
 
@@ -2677,6 +2659,11 @@
       shell_weight_fraction: 'Shell weight fraction (0.15=15%)',
       copra_conversion_ratio: 'Copra conversion ratio (0.30=30%)',
       weather_location: 'Dashboard Weather Location (Optional)',
+      harvest_interval_summer_lo: 'Harvest cycle (summer) start day',
+      harvest_interval_summer_hi: 'Harvest cycle (summer) end day',
+      harvest_interval_nonsummer_lo: 'Harvest cycle (non-summer) start day',
+      harvest_interval_nonsummer_hi: 'Harvest cycle (non-summer) end day',
+      fertilizer_interval_days: 'Fertilizer re-application interval (days)',
     };
 
     async function loadSettings() {
@@ -2724,3 +2711,4 @@
 </body>
 
 </html>
+

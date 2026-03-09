@@ -18,7 +18,7 @@
       "tree_age_years": 15,
       "soil_type": "loamy",
       "water_source": "borewell",
-      "intercropping": true,
+      "intercropping": false,
       "intercrop_names": "Banana, Mango",
       "intercrop_area": 0,
       "id": "FARM001",
@@ -147,12 +147,18 @@
     "copra_yield_grade3_pct": 10.0,
     "shell_weight_fraction": 0.15,
     "copra_conversion_ratio": 0.3,
-    "weather_location": "Peravurani"
+    "weather_location": "Peravurani",
+    "harvest_interval_summer_lo": 35.0,
+    "harvest_interval_summer_hi": 45.0,
+    "harvest_interval_nonsummer_lo": 60.0,
+    "harvest_interval_nonsummer_hi": 75.0,
+    "fertilizer_interval_days": 365.0
   },
   "fertilizer_jobs": [],
   "fertilizer_prices": {
     "urea": 40.0,
-    "dap": 60.0
+    "dap": 60.0,
+    "custom": 3000.0
   },
   "fertilizer_compositions": [],
   "totp_secret": "XU6SDJRIOK3G66IU7HPH2I243RZEV"

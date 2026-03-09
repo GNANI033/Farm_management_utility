@@ -622,8 +622,14 @@ DEFAULT_SETTINGS = {
     "copra_conversion_ratio": 0.30,   # ~30% of kernel weight becomes copra
     # Custom dashboard weather location
     "weather_location":       "",
+    # Harvest cycle windows (days)
+    "harvest_interval_summer_lo": 30.0,
+    "harvest_interval_summer_hi": 35.0,
+    "harvest_interval_nonsummer_lo": 40.0,
+    "harvest_interval_nonsummer_hi": 50.0,
+    # Fertilizer reapplication cycle (days)
+    "fertilizer_interval_days": 365.0,
 }
-
 def get_settings(data: dict) -> dict:
     s = DEFAULT_SETTINGS.copy()
     s.update(data.get("settings", {}))
@@ -651,6 +657,11 @@ def show_settings(data: dict) -> dict:
         ("Shell weight fraction (e.g. 0.15=15%)",  "shell_weight_fraction"),
         ("Copra conversion ratio (e.g. 0.30=30%)", "copra_conversion_ratio"),
         ("Dashboard Weather Location (Optional)",  "weather_location"),
+        ("Harvest summer window start (days)",     "harvest_interval_summer_lo"),
+        ("Harvest summer window end (days)",       "harvest_interval_summer_hi"),
+        ("Harvest non-summer start (days)",        "harvest_interval_nonsummer_lo"),
+        ("Harvest non-summer end (days)",          "harvest_interval_nonsummer_hi"),
+        ("Fertilizer reapply interval (days)",     "fertilizer_interval_days"),
     ]
     for label, key in labels:
         table.add_row(label, str(s[key]), key)
@@ -1169,3 +1180,9 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
+

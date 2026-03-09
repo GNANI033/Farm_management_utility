@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 CocoTrack Web UI — Flask wrapper around core.py
-Run: python app.py  →  http://localhost:5000
+Run: python app.py  →  http://localhost:3333
 """
 from flask import Flask, render_template, request, jsonify
 import sys, os, uuid, re
@@ -28,7 +28,7 @@ FERT_CATALOGUE = {
     "dap":               {"label": "DAP",                     "interval_days": 120, "unit": "kg",  "price": 0},
     "mop":               {"label": "MOP / Red Potash",        "interval_days": 120, "unit": "kg",  "price": 0},
     "ssp":               {"label": "SSP",                     "interval_days": 120, "unit": "kg",  "price": 0},
-    "fym":               {"label": "FYM (Farm Yard Manure)",  "interval_days": 180, "unit": "ton", "price": 0},
+    "fym":               {"label": "FYM (Farm Yard Manure)",  "interval_days": 180, "unit": "kg",  "price": 0},
     "neem_cake":         {"label": "Neem Cake",               "interval_days": 180, "unit": "kg",  "price": 0},
     "vermicompost":      {"label": "Vermicompost",            "interval_days": 180, "unit": "kg",  "price": 0},
     "boron":             {"label": "Boron",                   "interval_days": 365, "unit": "kg",  "price": 0},
@@ -51,6 +51,81 @@ def strip_rich(s):
 def today_str():
     return datetime.now().strftime("%Y-%m-%d")
 
+def _safe_int(v, fallback):
+    try:
+        return int(float(v))
+    except:
+        return fallback
+
+def _get_harvest_interval_from_settings(data, season=None):
+    season = season or get_current_season()
+    s = get_settings(data)
+    if season == "summer":
+        lo = _safe_int(s.get("harvest_interval_summer_lo", 30), 30)
+        hi = _safe_int(s.get("harvest_interval_summer_hi", 35), 35)
+    else:
+        lo = _safe_int(s.get("harvest_interval_nonsummer_lo", 40), 40)
+        hi = _safe_int(s.get("harvest_interval_nonsummer_hi", 50), 50)
+    lo = max(1, lo)
+    hi = max(lo, hi)
+    return lo, hi
+
+def _get_fertilizer_interval_days(data):
+    s = get_settings(data)
+    return max(1, _safe_int(s.get("fertilizer_interval_days", 365), 365))
+
+def _normalize_composition(comp):
+    # Backward compatibility: old per-farm+type presets are converted to age-based bundles.
+    if comp.get("fertilizers"):
+        age_min = float(comp.get("age_min_years", 0))
+        age_max = float(comp.get("age_max_years", 100))
+        normalized = []
+        for f in comp.get("fertilizers", []):
+            ftype = f.get("fertilizer_type", "custom")
+            cat = FERT_CATALOGUE.get(ftype, FERT_CATALOGUE["custom"])
+            normalized.append({
+                "fertilizer_type": ftype,
+                "fertilizer_label": f.get("fertilizer_label") or cat["label"],
+                "qty_per_tree": float(f.get("qty_per_tree", 0)),
+                # Keep units aligned with catalogue (notably FYM should be kg/tree).
+                "unit": cat["unit"],
+            })
+        c = dict(comp)
+        c["fertilizers"] = normalized
+        c["farm_name"] = ""
+        c["preset_name"] = _clean_preset_name(comp.get("preset_name"), comp.get("farm_name", ""), age_min, age_max)
+        c["age_min_years"] = age_min
+        c["age_max_years"] = age_max
+        return c
+    ftype = comp.get("fertilizer_type", "custom")
+    label = comp.get("fertilizer_label") or FERT_CATALOGUE.get(ftype, {}).get("label", ftype.title())
+    return {
+        "id": comp.get("id", str(uuid.uuid4())[:8]),
+        "farm_id": comp.get("farm_id", ""),
+        "farm_name": comp.get("farm_name", ""),
+        "preset_name": comp.get("preset_name") or "Default Program",
+        "age_min_years": float(comp.get("age_min_years", 0)),
+        "age_max_years": float(comp.get("age_max_years", 100)),
+        "fertilizers": [{
+            "fertilizer_type": ftype,
+            "fertilizer_label": label,
+            "qty_per_tree": float(comp.get("qty_per_tree", 0)),
+            "unit": FERT_CATALOGUE.get(ftype, FERT_CATALOGUE["custom"])["unit"],
+        }],
+        "application_method": comp.get("application_method", ""),
+        "notes": comp.get("notes", ""),
+        "updated_at": comp.get("updated_at", datetime.now().isoformat()),
+    }
+
+
+def _clean_preset_name(raw_name, farm_name, age_min, age_max):
+    raw = (raw_name or "").strip()
+    farm = (farm_name or "").strip()
+    if farm and raw:
+        raw = re.sub(rf"^\s*{re.escape(farm)}\s*[-:|]\s*", "", raw, flags=re.IGNORECASE)
+        raw = re.sub(rf"\(\s*{re.escape(farm)}\s*\)", "", raw, flags=re.IGNORECASE)
+        raw = re.sub(rf"\b{re.escape(farm)}\b", "", raw, flags=re.IGNORECASE).strip(" -:|")
+    return raw or f"Age {int(age_min)}-{int(age_max)} years"
 def _ensure_keys(data):
     """Make sure all new top-level keys exist in data dict."""
     for k in ["farms","harvests","fertilizers","expenses","settings",
@@ -213,7 +288,7 @@ def get_harvests():
         harvests = [h for h in harvests if h.get("farm_id") == farm_id]
     return ok(sorted(harvests, key=lambda x: x.get("harvest_date",""), reverse=True))
 
-def _calc_harvest(entry, num_trees):
+def _calc_harvest(entry, num_trees, data=None):
     good  = int(entry["nuts_harvested"]) - int(entry["defective_nuts"])
     rev   = good * float(entry["selling_price"])
     exp   = float(entry["labour_cost"]) + float(entry["transport_cost"]) + float(entry["other_expenses"])
@@ -223,7 +298,7 @@ def _calc_harvest(entry, num_trees):
     try:
         hdate  = datetime.strptime(entry["harvest_date"], "%Y-%m-%d")
         season = get_current_season(hdate.month)
-        lo, hi = get_harvest_interval(season)
+        lo, hi = _get_harvest_interval_from_settings(data, season)
         entry.update(season=season,
                      next_harvest_from=(hdate+timedelta(days=lo)).strftime("%Y-%m-%d"),
                      next_harvest_to  =(hdate+timedelta(days=hi)).strftime("%Y-%m-%d"))
@@ -256,7 +331,7 @@ def add_harvest():
         "logged_at":     datetime.now().isoformat(),
         "last_edited":   "",
     }
-    _calc_harvest(entry, farm["num_trees"])
+    _calc_harvest(entry, farm["num_trees"], data)
     data["harvests"].append(entry)
     save_data(data)
     return ok(entry)
@@ -309,7 +384,7 @@ def bulk_harvest():
             "logged_at":     datetime.now().isoformat(),
             "last_edited":   "",
         }
-        _calc_harvest(entry, int(farm.get("num_trees", 1)))
+        _calc_harvest(entry, int(farm.get("num_trees", 1)), data)
         data["harvests"].append(entry)
         results.append(entry)
         
@@ -329,7 +404,7 @@ def update_harvest(harvest_id):
                         "selling_price","labour_cost","transport_cost","other_expenses","notes"]:
                 if fld in body:
                     h[fld] = body[fld]
-            _calc_harvest(h, int(farm.get("num_trees", h.get("num_trees",1))))
+            _calc_harvest(h, int(farm.get("num_trees", h.get("num_trees",1))), data)
             h["last_edited"] = datetime.now().isoformat()
             save_data(data)
             return ok(h)
@@ -366,7 +441,8 @@ def delete_harvest(harvest_id):
 def get_fert_catalogue():
     data   = load_data()
     prices = data.get("fertilizer_prices", {})
-    result = {k: {**v, "saved_price": prices.get(k, v["price"])}
+    interval = _get_fertilizer_interval_days(data)
+    result = {k: {**v, "interval_days": interval, "saved_price": prices.get(k, v["price"])}
               for k, v in FERT_CATALOGUE.items()}
     return ok(result)
 
@@ -381,43 +457,70 @@ def save_fert_prices():
     save_data(data)
     return ok(prices)
 
-# ─── Fertilizer compositions (per-farm dosage presets) ───────────────────────
+# ─── Fertilizer compositions (age-based dosage presets) ───────────────────────
 @app.route("/api/fertilizer-compositions", methods=["GET"])
 def get_compositions():
     data    = load_data()
-    farm_id = request.args.get("farm_id")
-    comps   = data.get("fertilizer_compositions", [])
-    if farm_id:
-        comps = [c for c in comps if c.get("farm_id") == farm_id]
+    comps   = [_normalize_composition(c) for c in data.get("fertilizer_compositions", [])]
+    comps = sorted(comps, key=lambda x: float(x.get("age_min_years", 0)))
     return ok(comps)
 
 @app.route("/api/fertilizer-compositions", methods=["POST"])
 def save_composition():
     data = load_data()
     body = request.json
-    farm = next((f for f in data["farms"] if f["id"] == body.get("farm_id")), None)
-    if not farm:
-        return err("Farm not found")
-    comps = data.get("fertilizer_compositions", [])
-    # upsert: same farm + same fertilizer type → replace
-    idx = next((i for i,c in enumerate(comps)
-                if c["farm_id"]==body["farm_id"] and c["fertilizer_type"]==body.get("fertilizer_type")), None)
+    comps = [_normalize_composition(c) for c in data.get("fertilizer_compositions", [])]
+
+    incoming_ferts = body.get("fertilizers") or []
+    if not incoming_ferts and body.get("fertilizer_type"):
+        # Legacy payload compatibility
+        incoming_ferts = [{
+            "fertilizer_type": body.get("fertilizer_type"),
+            "qty_per_tree": float(body.get("qty_per_tree", 0)),
+            "unit": body.get("unit", "kg"),
+        }]
+
+    norm_ferts = []
+    for f in incoming_ferts:
+        ftype = f.get("fertilizer_type", "custom")
+        cat = FERT_CATALOGUE.get(ftype, FERT_CATALOGUE["custom"])
+        norm_ferts.append({
+            "fertilizer_type": ftype,
+            "fertilizer_label": cat["label"],
+            "qty_per_tree": float(f.get("qty_per_tree", 0)),
+            # Enforce catalogue units (FYM is kg/tree).
+            "unit": cat["unit"],
+        })
+
+    if not norm_ferts:
+        return err("At least one fertilizer entry is required")
+
+    age_min = float(body.get("age_min_years", 0))
+    age_max = float(body.get("age_max_years", 100))
+    if age_max < age_min:
+        return err("Age max must be greater than or equal to age min")
+
+    idx = next((i for i, c in enumerate(comps)
+                if float(c.get("age_min_years", 0)) == age_min
+                and float(c.get("age_max_years", 100)) == age_max), None)
+
     comp = {
-        "id":                 comps[idx]["id"] if idx is not None else str(uuid.uuid4())[:8],
-        "farm_id":            farm["id"],
-        "farm_name":          farm["name"],
-        "fertilizer_type":    body.get("fertilizer_type"),
-        "fertilizer_label":   FERT_CATALOGUE.get(body.get("fertilizer_type","custom"),{}).get("label",""),
-        "qty_per_tree":       float(body.get("qty_per_tree", 0)),
-        "unit":               body.get("unit", "g"),          # g per tree or kg per tree
-        "application_method": body.get("application_method",""),
-        "notes":              body.get("notes",""),
-        "updated_at":         datetime.now().isoformat(),
+        "id": comps[idx]["id"] if idx is not None else str(uuid.uuid4())[:8],
+        "farm_name": "",
+        "preset_name": _clean_preset_name(body.get("preset_name"), "", age_min, age_max),
+        "age_min_years": age_min,
+        "age_max_years": age_max,
+        "fertilizers": norm_ferts,
+        "application_method": body.get("application_method", ""),
+        "notes": body.get("notes", ""),
+        "updated_at": datetime.now().isoformat(),
     }
+
     if idx is not None:
         comps[idx] = comp
     else:
         comps.append(comp)
+
     data["fertilizer_compositions"] = comps
     save_data(data)
     return ok(comp)
@@ -444,8 +547,7 @@ def get_fert_jobs():
 def create_fert_job():
     """
     Start a fertilizer application job.
-    {farm_id, fertilizer_type, total_qty, price_per_unit,
-     composition_id?, start_date?, notes?, custom_name?}
+    Supports both legacy and age-preset payloads.
     """
     data = load_data()
     body = request.json
@@ -453,61 +555,95 @@ def create_fert_job():
     if not farm:
         return err("Farm not found")
 
-    ftype    = body.get("fertilizer_type", "urea")
-    cat      = FERT_CATALOGUE.get(ftype, FERT_CATALOGUE["custom"])
-    interval = cat["interval_days"]
-    unit     = body.get("unit", cat["unit"])
-    label    = body.get("custom_name","").strip() or cat["label"]
+    ftype = body.get("fertilizer_type", "custom")
+    cat = FERT_CATALOGUE.get(ftype, FERT_CATALOGUE["custom"])
+    unit = body.get("unit", cat["unit"])
+    interval = _get_fertilizer_interval_days(data)
 
-    total_qty   = float(body.get("total_qty", 0))
+    preset_name = (body.get("preset_name") or "").strip()
+    label = preset_name or body.get("custom_name", "").strip() or cat["label"]
+
+    total_qty = float(body.get("total_qty", 0))
     price_per_u = float(body.get("price_per_unit", 0))
+    total_cost_override = body.get("total_cost")
+    if total_cost_override is not None:
+        total_cost = float(total_cost_override)
+        if total_qty <= 0:
+            total_qty = 1
+        if price_per_u <= 0:
+            price_per_u = total_cost
+    else:
+        total_cost = round(total_qty * price_per_u, 2)
 
+    start_date = body.get("start_date", today_str())
     try:
-        start_dt = datetime.strptime(body.get("start_date", today_str()), "%Y-%m-%d")
+        start_dt = datetime.strptime(start_date, "%Y-%m-%d")
         next_due = (start_dt + timedelta(days=interval)).strftime("%Y-%m-%d")
     except:
         next_due = ""
 
+    initial_progress = float(body.get("progress_pct", 0))
+    progress_type = body.get("progress_type", "set")
+    if progress_type == "delta":
+        progress_total = min(100.0, initial_progress)
+    else:
+        progress_total = min(100.0, initial_progress)
+
+    sessions = []
+    if initial_progress > 0:
+        sessions.append({
+            "session_id": str(uuid.uuid4())[:8],
+            "date": body.get("session_date", start_date),
+            "pct_this_day": initial_progress,
+            "progress_type": progress_type,
+            "total_after": progress_total,
+            "area_covered": body.get("area_covered", ""),
+            "notes": body.get("notes", ""),
+            "expense": float(body.get("session_expense", total_cost)),
+            "logged_at": datetime.now().isoformat(),
+        })
+
     job_id = "FRTJ-" + str(uuid.uuid4())[:8].upper()
     job = {
-        "job_id":           job_id,
-        "farm_id":          farm["id"],
-        "farm_name":        farm["name"],
-        "fertilizer_type":  ftype,
+        "job_id": job_id,
+        "farm_id": farm["id"],
+        "farm_name": farm["name"],
+        "fertilizer_type": ftype,
         "fertilizer_label": label,
-        "unit":             unit,
-        "composition_id":   body.get("composition_id",""),
-        "total_qty":        total_qty,
-        "price_per_unit":   price_per_u,
-        "total_cost":       round(total_qty * price_per_u, 2),
-        "start_date":       body.get("start_date", today_str()),
-        "next_due_date":    next_due,
-        "notes":            body.get("notes",""),
-        "status":           "in_progress",   # in_progress | completed
-        "progress_pct":     0.0,
-        "sessions":         [],
-        "created_at":       datetime.now().isoformat(),
+        "unit": unit,
+        "composition_id": body.get("composition_id", ""),
+        "composition_snapshot": body.get("composition_snapshot", []),
+        "total_qty": total_qty,
+        "price_per_unit": price_per_u,
+        "total_cost": round(total_cost, 2),
+        "start_date": start_date,
+        "next_due_date": next_due,
+        "notes": body.get("notes", ""),
+        "status": "completed" if progress_total >= 100 else "in_progress",
+        "progress_pct": progress_total,
+        "sessions": sessions,
+        "created_at": datetime.now().isoformat(),
     }
+    if job["status"] == "completed":
+        job["completed_date"] = sessions[0]["date"] if sessions else start_date
 
     data.setdefault("fertilizer_jobs", []).append(job)
 
-    # Mirror into legacy fertilizers list so alerts work
     data.setdefault("fertilizers", []).append({
-        "farm_id":         farm["id"],
-        "farm_name":       farm["name"],
+        "farm_id": farm["id"],
+        "farm_name": farm["name"],
         "fertilizer_type": ftype,
-        "quantity_kg":     total_qty,
-        "cost":            job["total_cost"],
-        "applied_date":    job["start_date"],
-        "next_due_date":   next_due,
-        "logged_at":       datetime.now().isoformat(),
-        "notes":           body.get("notes",""),
-        "job_id":          job_id,
+        "quantity_kg": total_qty,
+        "cost": job["total_cost"],
+        "applied_date": start_date,
+        "next_due_date": next_due,
+        "logged_at": datetime.now().isoformat(),
+        "notes": body.get("notes", ""),
+        "job_id": job_id,
     })
 
-    # Save price for next time
     prices = data.get("fertilizer_prices", {})
-    if price_per_u > 0:
+    if price_per_u > 0 and ftype in FERT_CATALOGUE:
         prices[ftype] = price_per_u
     data["fertilizer_prices"] = prices
 
@@ -518,7 +654,7 @@ def create_fert_job():
 def add_session(job_id):
     """
     Log a daily progress update.
-    {date?, progress_pct, progress_type ('delta'|'set'), area_covered?, notes?}
+    {date?, progress_pct, progress_type ('delta'|'set'), area_covered?, notes?, expense?}
     delta mode: adds to current progress.  set mode: sets absolute %.
     """
     data = load_data()
@@ -536,6 +672,7 @@ def add_session(job_id):
     else:
         job["progress_pct"] = min(100.0, new_pct)
 
+    expense = float(body.get("expense", 0))
     session = {
         "session_id":    str(uuid.uuid4())[:8],
         "date":          body.get("date", today_str()),
@@ -544,9 +681,11 @@ def add_session(job_id):
         "total_after":   job["progress_pct"],
         "area_covered":  body.get("area_covered",""),
         "notes":         body.get("notes",""),
+        "expense":       expense,
         "logged_at":     datetime.now().isoformat(),
     }
     job.setdefault("sessions", []).append(session)
+    job["total_cost"] = round(float(job.get("total_cost", 0)) + expense, 2)
 
     if job["progress_pct"] >= 100:
         job["status"]         = "completed"
@@ -598,17 +737,25 @@ def get_alerts():
         key = (e["farm_id"], e["fertilizer_type"])
         if key not in fert_last or e.get("applied_date","") > fert_last[key].get("applied_date",""):
             fert_last[key] = e
+        fert_interval = _get_fertilizer_interval_days(data)
     for (_, ftype), e in fert_last.items():
-        nd = e.get("next_due_date","")
+        nd = e.get("next_due_date", "")
+        if not nd and e.get("applied_date"):
+            try:
+                ap = datetime.strptime(e.get("applied_date"), "%Y-%m-%d")
+                nd = (ap + timedelta(days=fert_interval)).strftime("%Y-%m-%d")
+            except:
+                nd = ""
         if nd:
             try:
-                dl = (datetime.strptime(nd,"%Y-%m-%d").date() - today).days
+                dl = (datetime.strptime(nd, "%Y-%m-%d").date() - today).days
                 if dl <= 14:
-                    lbl = FERT_CATALOGUE.get(ftype,{}).get("label", ftype.title())
-                    alerts.append({"type":"fertilizer","farm":e["farm_name"],
-                                   "message":f"{lbl} due on {nd}","days_left":dl,
-                                   "severity":"danger" if dl<0 else ("warning" if dl<=7 else "info")})
-            except: pass
+                    lbl = FERT_CATALOGUE.get(ftype, {}).get("label", (ftype or "Fertilizer").title())
+                    alerts.append({"type": "fertilizer", "farm": e["farm_name"],
+                                   "message": f"{lbl} due on {nd}", "days_left": dl,
+                                   "severity": "danger" if dl < 0 else ("warning" if dl <= 7 else "info")})
+            except:
+                pass
 
     # In-progress job alerts
     for job in data.get("fertilizer_jobs", []):
@@ -625,7 +772,7 @@ def get_alerts():
         if fid not in harv_last or h.get("harvest_date","") > harv_last[fid].get("harvest_date",""):
             harv_last[fid] = h
     season = get_current_season()
-    lo, hi = get_harvest_interval(season)
+    lo, hi = _get_harvest_interval_from_settings(data, season)
     for fid, h in harv_last.items():
         try:
             last_dt   = datetime.strptime(h["harvest_date"],"%Y-%m-%d").date()
@@ -692,6 +839,7 @@ def get_settings_api():
 @app.route("/api/settings", methods=["POST"])
 def save_settings_api():
     data = load_data()
+    data.setdefault("settings", {})
     for k, v in request.json.items():
         if k in DEFAULT_SETTINGS:
             if k == "weather_location":
@@ -708,7 +856,7 @@ def get_stats():
     harvests = data.get("harvests",[])
     farms    = data.get("farms",[])
     season   = get_current_season()
-    lo, hi   = get_harvest_interval(season)
+    lo, hi   = _get_harvest_interval_from_settings(data, season)
     fs = {}
     for h in harvests:
         fid = h["farm_id"]
@@ -739,5 +887,7 @@ def get_stats():
 
 if __name__ == "__main__":
     print("\nCocoTrack Web UI starting...")
-    print("   Open http://localhost:5000 in your browser\n")
-    app.run(debug=True, port=5000)
+    print("   Open http://localhost:3333 in your browser\n")
+    app.run(debug=True, port=3333)
+
+
