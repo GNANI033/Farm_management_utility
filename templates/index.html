@@ -301,7 +301,147 @@
       color: var(--rain)
     }
 
-    /* Weather */
+
+    .stat-sub {
+      font-size: 11px;
+      color: var(--fog);
+      margin-top: 4px
+    }
+
+    .proj-chart {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(100px, 1fr));
+      gap: 10px;
+      align-items: end;
+      min-height: 180px
+    }
+
+    .proj-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px
+    }
+
+    .proj-val {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--cream)
+    }
+
+    .proj-bar-wrap {
+      width: 100%;
+      height: 120px;
+      display: flex;
+      align-items: flex-end
+    }
+
+    .proj-bar {
+      width: 100%;
+      border-radius: 8px 8px 4px 4px;
+      background: linear-gradient(180deg, rgba(212, 168, 75, .9), rgba(42, 61, 28, .9));
+      border: 1px solid rgba(212, 168, 75, .4);
+      min-height: 6px
+    }
+
+    .proj-bar.pred {
+      background: linear-gradient(180deg, rgba(74, 127, 165, .9), rgba(35, 58, 76, .9));
+      border-color: rgba(74, 127, 165, .45)
+    }
+
+    .proj-lbl {
+      font-size: 10px;
+      color: var(--fog);
+      text-align: center;
+      line-height: 1.2
+    }
+.exp-break-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(220px, 1fr));
+      gap: 12px
+    }
+
+    .exp-sub {
+      background: rgba(0, 0, 0, .18);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      min-height: 150px
+    }
+
+    .exp-sub .t {
+      font-size: 10px;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      color: var(--fog);
+      margin-bottom: 8px
+    }
+
+    .exp-sub .p {
+      font-size: 13px;
+      color: var(--cream);
+      line-height: 1.5
+    }
+
+    .exp-sub .v {
+      font-family: 'DM Mono', monospace;
+      color: var(--sun);
+      font-size: 16px;
+      font-weight: 700
+    }
+
+    .exp-sub .main {
+      font-family: 'Playfair Display', serif;
+      font-size: 34px;
+      font-weight: 700;
+      line-height: 1.1;
+      color: var(--sun);
+      margin: 2px 0 8px
+    }
+
+    .exp-sub .main.small {
+      font-size: 28px
+    }
+
+    .exp-sub .main.neg {
+      color: var(--lime)
+    }
+
+    .exp-sub .main.bad {
+      color: #e05c4b
+    }
+
+    .exp-sub .meta {
+      font-size: 12px;
+      color: var(--fog)
+    }
+
+    .exp-sub .chip {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      margin-top: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .02em;
+      border: 1px solid var(--card-border)
+    }
+
+    .exp-sub .chip.up {
+      color: #e05c4b;
+      background: rgba(192, 57, 43, .12)
+    }
+
+    .exp-sub .chip.down {
+      color: var(--lime);
+      background: rgba(39, 174, 96, .12)
+    }
+
+    .exp-sub .chip.flat {
+      color: var(--sun);
+      background: rgba(232, 160, 32, .12)
+    }
+/* Weather */
     .weather-card {
       background: linear-gradient(135deg, rgba(74, 127, 165, .15), rgba(42, 61, 28, .3));
       border: 1px solid rgba(74, 127, 165, .25);
@@ -1194,6 +1334,7 @@
         <div class="nav-item" data-page="farms"><span class="icon">🌱</span> Farms</div>
         <div class="nav-item" data-page="harvests"><span class="icon">🥥</span> Harvests</div>
         <div class="nav-item" data-page="fertilizers"><span class="icon">🧪</span> Fertilizers</div>
+        <div class="nav-item" data-page="expenses"><span class="icon">📒</span> Expense Manager</div>
         <div class="nav-section">Analysis</div>
         <div class="nav-item" data-page="calculator"><span class="icon">💰</span> Sell Calculator</div>
         <div class="nav-item" data-page="predictions"><span class="icon">🔮</span> Predictions</div>
@@ -1234,6 +1375,7 @@
             <div class="stat-card blue">
               <div class="stat-label">Total Profit</div>
               <div class="stat-value" id="statProfit">—</div>
+              <div class="stat-sub" id="statProfitPct">Net Return: —</div>
             </div>
           </div>
           <div id="dashWeather"></div>
@@ -1244,6 +1386,18 @@
                 <div class="spinner"></div>Loading…
               </div>
             </div>
+          </div>
+          <div class="card">
+            <div class="card-title">🧾 Expense Breakdown</div>
+            <div id="expenseBreakdown">
+              <div class="loading">
+                <div class="spinner"></div>Loading…
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">📈 Harvest Trend (Prev, Current + Next 3)</div>
+            <div id="harvestProjectionChart"></div>
           </div>
           <div class="card">
             <div class="card-title">🥥 Recent Harvests</div>
@@ -1466,6 +1620,27 @@
           </div>
         </div>
 
+        <!-- Expense Manager -->
+        <div class="page" id="page-expenses">
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-title">📒 Add Other Farm Expense</div>
+            <div class="form-grid c3">
+              <div class="fg"><label>Date *</label><input id="xDate" type="date"></div>
+              <div class="fg"><label>Farm (optional)</label><select id="xFarm"></select></div>
+              <div class="fg"><label>Category *</label><input id="xCategory" placeholder="e.g. Irrigation, Repair"></div>
+              <div class="fg"><label>Amount (₹) *</label><input id="xAmount" type="number" step="0.01" placeholder="0"></div>
+              <div class="fg s2"><label>Description</label><input id="xDesc" placeholder="What was this expense for?"></div>
+              <div class="fg s2"><label>Notes</label><textarea id="xNotes" placeholder="Optional"></textarea></div>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-p" onclick="addExpense()">✅ Save Expense</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">🧾 Expense History</div>
+            <div id="expensesList"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+          </div>
+        </div>
         <!-- Calculator -->
         <div class="page" id="page-calculator">
           <div class="card">
@@ -1689,7 +1864,7 @@
     const PAGE_TITLES = {
       dashboard: 'Dashboard', weather: 'Weather & Rain',
       farms: 'Farms', harvests: 'Harvests', fertilizers: 'Fertilizers',
-      calculator: 'Sell Calculator', predictions: 'Yield Predictions',
+      expenses: 'Expense Manager', calculator: 'Sell Calculator', predictions: 'Yield Predictions',
       profile: 'Farmer Profile', settings: 'Settings'
     };
     document.querySelectorAll('.nav-item').forEach(el => {
@@ -1708,6 +1883,7 @@
       if (p === 'farms') loadFarms();
       if (p === 'harvests') loadHarvests();
       if (p === 'fertilizers') loadFertilizers();
+      if (p === 'expenses') loadExpenses();
       if (p === 'predictions') loadPredictions();
       if (p === 'profile') loadProfile();
       if (p === 'settings') loadSettings();
@@ -1843,7 +2019,7 @@
     }
 
     function populateFarmSelects(farms) {
-      ['hFarm', 'fjFarm', 'efFarm_ignore'].forEach(id => {
+      ['hFarm', 'fjFarm', 'efFarm_ignore', 'xFarm'].forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
         el.innerHTML = farms.map(f => `<option value="${f.id}">${f.name} (${f.id})</option>`).join('');
@@ -1853,6 +2029,27 @@
       if (ff) ff.innerHTML = farms.map(f => `<option value="${f.id}">${f.name} (${f.id})</option>`).join('');
     }
 
+    function renderProjectionChart(proj) {
+      const el = document.getElementById('harvestProjectionChart');
+      if (!el) return;
+      const labels = proj.labels || [];
+      const values = proj.values || [];
+      if (!labels.length || !values.length || !values.some(v => Number(v) > 0)) {
+        el.innerHTML = '<div style="color:var(--fog);font-size:13px">Not enough harvest data to plot yet.</div>';
+        return;
+      }
+      const max = Math.max(...values.map(v => Number(v) || 0), 1);
+      el.innerHTML = `<div class="proj-chart">${labels.map((label, i) => {
+        const v = Number(values[i] || 0);
+        const h = Math.max(6, Math.round((v / max) * 120));
+        const pred = i >= 2;
+        return `<div class="proj-col">
+          <div class="proj-val">${v.toLocaleString()}</div>
+          <div class="proj-bar-wrap"><div class="proj-bar ${pred ? 'pred' : ''}" style="height:${h}px"></div></div>
+          <div class="proj-lbl">${label}</div>
+        </div>`;
+      }).join('')}</div>`;
+    }
     // ── Dashboard ──────────────────────────────────────────────────────────────
     async function loadDashboard() {
       try {
@@ -1864,6 +2061,8 @@
         document.getElementById('statTrees').textContent = stats.total_trees.toLocaleString();
         document.getElementById('statRevenue').textContent = fmt(stats.total_revenue);
         document.getElementById('statProfit').textContent = fmt(stats.total_profit);
+        document.getElementById('statProfitPct').textContent = 'Net Return: ' + (stats.net_return_pct || 0).toFixed(2) + '%';
+        renderProjectionChart(stats.harvest_projection || { labels: [], values: [] });
         document.getElementById('seasonName').textContent = (stats.season || '').replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
         document.getElementById('seasonCycle').textContent = `${stats.harvest_interval.lo}–${stats.harvest_interval.hi} day cycle`;
         if (farmer) document.getElementById('farmerName').textContent = farmer.name;
@@ -1879,6 +2078,46 @@
         else {
           const icons = { fertilizer: '🧪', fertilizer_job: '🔄', harvest: '🥥' };
           aEl.innerHTML = alerts.map(a => `<div class="alert-item ${a.severity}"><div class="alert-icon">${icons[a.type] || '⚡'}</div><div><div class="alert-farm">${a.farm}</div><div class="alert-msg">${a.message}</div></div></div>`).join('');
+        }
+        const expEl = document.getElementById('expenseBreakdown');
+        if (expEl) {
+          const ins = stats.expense_insights || {};
+          const fmtPct = (p) => {
+            if (p === null || p === undefined || Number.isNaN(Number(p))) return 'N/A';
+            const n = Number(p);
+            if (n === 0) return '0.0%';
+            return (n > 0 ? '↑ ' : '↓ ') + Math.abs(n).toFixed(1) + '%';
+          };
+          const chipClass = (p) => {
+            if (p === null || p === undefined || Number.isNaN(Number(p)) || Number(p) === 0) return 'flat';
+            return Number(p) > 0 ? 'up' : 'down';
+          };
+          expEl.innerHTML = `<div class="exp-break-grid">
+            <div class="exp-sub">
+              <div class="t">Totals</div>
+              <div class="main">${fmt(ins.monthly_expense || 0)}</div>
+              <div class="meta">This Month</div>
+              <div class="p" style="margin-top:10px">Yearly Total: <span class="v">${fmt(ins.yearly_expense || 0)}</span></div>
+            </div>
+            <div class="exp-sub">
+              <div class="t">Overall Trend</div>
+              <div class="main small ${Number(ins.overall_mom_pct || 0) < 0 ? 'neg' : (Number(ins.overall_mom_pct || 0) > 0 ? 'bad' : '')}">${fmtPct(ins.overall_mom_pct)}</div>
+              <div class="meta">Month on Month</div>
+              <div class="chip ${chipClass(ins.overall_yoy_pct)}">YoY: ${fmtPct(ins.overall_yoy_pct)}</div>
+            </div>
+            <div class="exp-sub">
+              <div class="t">Fertilizer Trend</div>
+              <div class="main small ${Number(ins.fertilizer_yoy_pct || 0) < 0 ? 'neg' : (Number(ins.fertilizer_yoy_pct || 0) > 0 ? 'bad' : '')}">${fmtPct(ins.fertilizer_yoy_pct)}</div>
+              <div class="meta">Year on Year (MoM not applied)</div>
+            </div>
+            <div class="exp-sub">
+              <div class="t">Harvest Comparison</div>
+              <div class="main">${fmt(ins.harvest_latest_expense || 0)}</div>
+              <div class="meta">Latest Harvest Expense</div>
+              <div class="p" style="margin-top:8px">Previous: <span class="v">${fmt(ins.harvest_previous_expense || 0)}</span></div>
+              <div class="chip ${chipClass(ins.harvest_vs_prev_pct)}">Change: ${fmtPct(ins.harvest_vs_prev_pct)}</div>
+            </div>
+          </div>`;
         }
         const hEl = document.getElementById('recentHarvests');
         if (!harvests.length) { hEl.innerHTML = '<div style="color:var(--fog);font-size:13px">No harvests logged yet.</div>'; return; }
@@ -2580,6 +2819,63 @@
       document.getElementById('copraPerNutHint').textContent = '';
     }
 
+    // ── Expense Manager ────────────────────────────────────────────────────────
+    async function loadExpenses() {
+      try {
+        const [farms, expenses] = await Promise.all([api('GET', '/api/farms'), api('GET', '/api/expenses')]);
+        const farmOptions = ['<option value="">All Farms / General</option>']
+          .concat(farms.map(f => `<option value="${f.id}">${f.name} (${f.id})</option>`));
+        const farmSel = document.getElementById('xFarm');
+        if (farmSel) farmSel.innerHTML = farmOptions.join('');
+        document.getElementById('xDate').value = today();
+
+        const el = document.getElementById('expensesList');
+        if (!expenses.length) {
+          el.innerHTML = '<div style="color:var(--fog);font-size:13px">No extra expenses logged yet.</div>';
+          return;
+        }
+        el.innerHTML = `<table class="data-table"><thead><tr><th>ID</th><th>Date</th><th>Farm</th><th>Category</th><th>Description</th><th>Amount</th><th></th></tr></thead><tbody>
+          ${expenses.map(x => `<tr>
+            <td><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--husk)">${x.expense_id || '—'}</span></td>
+            <td>${x.date || '—'}</td>
+            <td>${x.farm_name || '<span style="color:var(--fog)">General</span>'}</td>
+            <td>${x.category || 'general'}</td>
+            <td>${x.description || '—'}</td>
+            <td style="color:#e05c4b">${fmt(x.amount || 0)}</td>
+            <td><button class="btn btn-r" style="padding:4px 10px;font-size:11px" onclick="deleteExpense('${x.expense_id}')">🗑 Delete</button></td>
+          </tr>`).join('')}
+        </tbody></table>`;
+      } catch (e) { toast(e.message, true); }
+    }
+
+    async function addExpense() {
+      const body = {
+        date: document.getElementById('xDate').value || today(),
+        farm_id: document.getElementById('xFarm').value || '',
+        category: document.getElementById('xCategory').value.trim() || 'general',
+        amount: parseFloat(document.getElementById('xAmount').value) || 0,
+        description: document.getElementById('xDesc').value.trim(),
+        notes: document.getElementById('xNotes').value.trim(),
+      };
+      if (!body.amount || body.amount <= 0) return toast('Expense amount should be greater than zero', true);
+      try {
+        await api('POST', '/api/expenses', body);
+        toast('✅ Expense saved');
+        ['xAmount', 'xDesc', 'xNotes'].forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+        loadExpenses();
+        loadDashboard();
+      } catch (e) { toast(e.message, true); }
+    }
+
+    async function deleteExpense(expenseId) {
+      if (!confirm('Delete this expense record?')) return;
+      try {
+        await api('DELETE', `/api/expenses/${expenseId}`);
+        toast('🗑 Expense deleted');
+        loadExpenses();
+        loadDashboard();
+      } catch (e) { toast(e.message, true); }
+    }
     // ── Predictions ────────────────────────────────────────────────────────────
     async function loadPredictions() {
       const el = document.getElementById('predContent');
@@ -2711,4 +3007,18 @@
 </body>
 
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

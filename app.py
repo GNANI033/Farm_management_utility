@@ -133,6 +133,144 @@ def _ensure_keys(data):
         data.setdefault(k, [] if k not in ("settings","fertilizer_prices") else {})
     return data
 
+def _sum_fertilizer_expenses(data):
+    total = 0.0
+    jobs = data.get("fertilizer_jobs", [])
+    seen_job_ids = set()
+    for job in jobs:
+        total += float(job.get("total_cost", 0) or 0)
+        if job.get("job_id"):
+            seen_job_ids.add(job["job_id"])
+    # Backward compatibility: include legacy fertilizer records not linked to a job.
+    for fert in data.get("fertilizers", []):
+        job_id = fert.get("job_id")
+        if job_id and job_id in seen_job_ids:
+            continue
+        total += float(fert.get("cost", 0) or 0)
+    return round(total, 2)
+
+def _sum_other_expenses(data):
+    return round(sum(float(e.get("amount", 0) or 0) for e in data.get("expenses", [])), 2)
+
+def _parse_date_safe(date_text):
+    try:
+        return datetime.strptime(str(date_text), "%Y-%m-%d").date()
+    except:
+        return None
+
+def _pct_change(curr, prev):
+    curr = float(curr or 0)
+    prev = float(prev or 0)
+    if prev == 0:
+        return 0.0 if curr == 0 else None
+    return round(((curr - prev) / prev) * 100.0, 2)
+
+def _sum_for_month(records, year, month):
+    return round(sum(v for d, v in records if d and d.year == year and d.month == month), 2)
+
+def _sum_for_year(records, year):
+    return round(sum(v for d, v in records if d and d.year == year), 2)
+
+def _build_expense_insights(data):
+    today = datetime.now().date()
+    cur_year = today.year
+    prev_year = cur_year - 1
+    if today.month == 1:
+        prev_month_year, prev_month = cur_year - 1, 12
+    else:
+        prev_month_year, prev_month = cur_year, today.month - 1
+
+    total_records = []
+    fertilizer_records = []
+    harvest_records = []
+
+    for h in data.get("harvests", []):
+        d = _parse_date_safe(h.get("harvest_date"))
+        amt = float(h.get("total_expenses", 0) or 0)
+        if d and amt:
+            total_records.append((d, amt))
+            harvest_records.append((d, amt))
+
+    jobs = data.get("fertilizer_jobs", [])
+    job_ids = {j.get("job_id") for j in jobs if j.get("job_id")}
+    for job in jobs:
+        sessions = job.get("sessions", []) or []
+        consumed = 0.0
+        for s in sessions:
+            d = _parse_date_safe(s.get("date"))
+            amt = float(s.get("expense", 0) or 0)
+            if d and amt:
+                total_records.append((d, amt))
+                fertilizer_records.append((d, amt))
+                consumed += amt
+        remaining = round(float(job.get("total_cost", 0) or 0) - consumed, 2)
+        if remaining > 0:
+            d = _parse_date_safe(job.get("completed_date") or job.get("start_date"))
+            if d:
+                total_records.append((d, remaining))
+                fertilizer_records.append((d, remaining))
+
+    for f in data.get("fertilizers", []):
+        if f.get("job_id") and f.get("job_id") in job_ids:
+            continue
+        d = _parse_date_safe(f.get("applied_date"))
+        amt = float(f.get("cost", 0) or 0)
+        if d and amt:
+            total_records.append((d, amt))
+            fertilizer_records.append((d, amt))
+
+    for e in data.get("expenses", []):
+        d = _parse_date_safe(e.get("date"))
+        amt = float(e.get("amount", 0) or 0)
+        if d and amt:
+            total_records.append((d, amt))
+
+    monthly = _sum_for_month(total_records, today.year, today.month)
+    prev_month_val = _sum_for_month(total_records, prev_month_year, prev_month)
+    yearly = _sum_for_year(total_records, cur_year)
+    prev_year_val = _sum_for_year(total_records, prev_year)
+
+    fert_cur_year = _sum_for_year(fertilizer_records, cur_year)
+    fert_prev_year = _sum_for_year(fertilizer_records, prev_year)
+
+    sorted_harvest = sorted(harvest_records, key=lambda x: x[0])
+    harvest_latest = sorted_harvest[-1][1] if sorted_harvest else 0.0
+    harvest_prev = sorted_harvest[-2][1] if len(sorted_harvest) >= 2 else 0.0
+
+    return {
+        "monthly_expense": monthly,
+        "yearly_expense": yearly,
+        "overall_mom_pct": _pct_change(monthly, prev_month_val),
+        "overall_yoy_pct": _pct_change(yearly, prev_year_val),
+        "fertilizer_yoy_pct": _pct_change(fert_cur_year, fert_prev_year),
+        "harvest_latest_expense": round(harvest_latest, 2),
+        "harvest_previous_expense": round(harvest_prev, 2),
+        "harvest_vs_prev_pct": _pct_change(harvest_latest, harvest_prev),
+    }
+
+def _build_harvest_projection(harvests):
+    ordered = sorted(harvests, key=lambda h: h.get("harvest_date", ""))
+    nuts = [float(h.get("nuts_harvested", 0) or 0) for h in ordered]
+    prev_nuts = int(nuts[-2]) if len(nuts) >= 2 else 0
+    current_nuts = int(nuts[-1]) if nuts else 0
+
+    if nuts:
+        recent = nuts[-3:] if len(nuts) >= 3 else nuts
+        baseline = sum(recent) / len(recent)
+        if len(nuts) >= 2:
+            raw_step = (nuts[-1] - nuts[0]) / max(len(nuts) - 1, 1)
+            cap = abs(baseline * 0.12)
+            trend_step = max(-cap, min(cap, raw_step))
+        else:
+            trend_step = 0.0
+        predicted = [max(0, int(round(baseline + trend_step * i))) for i in (1, 2, 3)]
+    else:
+        predicted = [0, 0, 0]
+
+    return {
+        "labels": ["Previous", "Current", "Predicted +1", "Predicted +2", "Predicted +3"],
+        "values": [prev_nuts, current_nuts] + predicted,
+    }
 # ─── Pages ────────────────────────────────────────────────────────────────────
 @app.route("/")
 def index():
@@ -724,6 +862,57 @@ def delete_fert_job(job_id):
     save_data(data)
     return ok({"deleted": job_id})
 
+# ─── Other Expenses ───────────────────────────────────────────────────────────
+@app.route("/api/expenses", methods=["GET"])
+def get_expenses():
+    data = load_data()
+    farm_id = request.args.get("farm_id")
+    expenses = data.get("expenses", [])
+    if farm_id:
+        expenses = [e for e in expenses if e.get("farm_id") == farm_id]
+    return ok(sorted(expenses, key=lambda x: x.get("date", ""), reverse=True))
+
+@app.route("/api/expenses", methods=["POST"])
+def add_expense():
+    data = load_data()
+    body = request.json or {}
+
+    farm_id = (body.get("farm_id") or "").strip()
+    farm_name = ""
+    if farm_id:
+        farm = next((f for f in data.get("farms", []) if f.get("id") == farm_id), None)
+        if not farm:
+            return err("Farm not found")
+        farm_name = farm.get("name", "")
+
+    amount = float(body.get("amount", 0) or 0)
+    if amount <= 0:
+        return err("Expense amount must be greater than 0")
+
+    entry = {
+        "expense_id": "EXP-" + str(uuid.uuid4())[:8].upper(),
+        "farm_id": farm_id,
+        "farm_name": farm_name,
+        "date": body.get("date", today_str()),
+        "category": (body.get("category") or "general").strip() or "general",
+        "description": (body.get("description") or "").strip(),
+        "amount": round(amount, 2),
+        "notes": (body.get("notes") or "").strip(),
+        "logged_at": datetime.now().isoformat(),
+    }
+    data.setdefault("expenses", []).append(entry)
+    save_data(data)
+    return ok(entry)
+
+@app.route("/api/expenses/<expense_id>", methods=["DELETE"])
+def delete_expense(expense_id):
+    data = load_data()
+    old_len = len(data.get("expenses", []))
+    data["expenses"] = [e for e in data.get("expenses", []) if e.get("expense_id") != expense_id]
+    if len(data["expenses"]) == old_len:
+        return err("Expense not found", 404)
+    save_data(data)
+    return ok({"deleted": expense_id})
 # ─── Alerts ───────────────────────────────────────────────────────────────────
 @app.route("/api/alerts", methods=["GET"])
 def get_alerts():
@@ -865,6 +1054,7 @@ def get_stats():
         fs[fid]["profit"].append(h["profit"])
         fs[fid]["revenue"].append(h["revenue"])
         fs[fid]["per_tree"].append(h.get("nuts_per_tree",0))
+
     preds = []
     for farm in farms:
         fid = farm["id"]
@@ -878,16 +1068,36 @@ def get_stats():
                 "avg_per_tree":round(sum(fs[fid]["per_tree"])/len(fs[fid]["per_tree"]),2),
                 "trend":trend,"next_nuts_lo":int(an*0.95),"next_nuts_hi":int(an*1.10),
                 "accuracy":"moderate" if len(ns)>=4 else "low"})
+
+    total_revenue = round(sum(float(h.get("revenue", 0) or 0) for h in harvests), 2)
+    harvest_expenses = round(sum(float(h.get("total_expenses", 0) or 0) for h in harvests), 2)
+    fertilizer_expenses = _sum_fertilizer_expenses(data)
+    other_expenses = _sum_other_expenses(data)
+    total_expenses = round(harvest_expenses + fertilizer_expenses + other_expenses, 2)
+    total_profit = round(total_revenue - total_expenses, 2)
+    net_return_pct = round((total_profit / total_revenue) * 100, 2) if total_revenue > 0 else 0.0
+    expense_insights = _build_expense_insights(data)
+
     return ok({"total_farms":len(farms),
                "total_trees":sum(f.get("num_trees",0) for f in farms),
-               "total_revenue":round(sum(h["revenue"] for h in harvests),2),
-               "total_profit":round(sum(h["profit"] for h in harvests),2),
+               "total_revenue":total_revenue,
+               "total_expenses":total_expenses,
+               "harvest_expenses":harvest_expenses,
+               "fertilizer_expenses":fertilizer_expenses,
+               "other_expenses":other_expenses,
+               "total_profit":total_profit,
+               "net_return_pct":net_return_pct,
                "total_harvests":len(harvests),"season":season,
-               "harvest_interval":{"lo":lo,"hi":hi},"predictions":preds})
+               "harvest_interval":{"lo":lo,"hi":hi},
+               "harvest_projection":_build_harvest_projection(harvests),
+               "expense_insights":expense_insights,
+               "predictions":preds})
 
 if __name__ == "__main__":
     print("\nCocoTrack Web UI starting...")
     print("   Open http://localhost:3333 in your browser\n")
     app.run(debug=True, port=3333)
+
+
 
 
