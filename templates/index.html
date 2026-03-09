@@ -1487,13 +1487,66 @@
         grid-template-columns: 1fr;
       }
 
+      .form-grid,
+      .form-grid.c3 {
+        grid-template-columns: 1fr;
+      }
+
+      .fg.s2,
+      .fg.s3 {
+        grid-column: span 1;
+      }
+
+      .tabs {
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .tab {
+        flex: 1 1 calc(50% - 6px);
+        text-align: center;
+        margin-bottom: 0;
+        border-bottom: 1px solid transparent;
+        border-radius: 8px;
+      }
+
       .card {
         padding: 14px;
-        overflow-x: auto;
+        overflow-x: hidden;
       }
 
       .data-table {
+        min-width: 0;
+        table-layout: fixed;
+      }
+
+      .data-table th,
+      .data-table td {
+        padding: 8px 6px;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+
+      #recentHarvests {
+        overflow-x: auto;
+      }
+
+      #recentHarvests .data-table {
         min-width: 760px;
+        table-layout: auto;
+      }
+
+      #bulkHarvestContainer {
+        overflow-x: hidden !important;
+      }
+
+      #bulkHarvestContainer .data-table {
+        table-layout: auto;
+      }
+
+      #bulkHarvestContainer td:first-child {
+        white-space: normal;
+        overflow-wrap: anywhere;
       }
 
       .modal {
@@ -1526,6 +1579,10 @@
       .btn {
         width: 100%;
         justify-content: center;
+      }
+
+      .tab {
+        flex-basis: 100%;
       }
     }
 
