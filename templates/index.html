@@ -657,6 +657,64 @@
       background: rgba(255, 255, 255, .03)
     }
 
+    .mobile-list-card {
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      background: rgba(0, 0, 0, .18);
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+
+    .mobile-list-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .mobile-list-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--cream);
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+
+    .mobile-kv {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 10px;
+      margin-top: 4px;
+    }
+
+    .mobile-k {
+      font-size: 10px;
+      color: var(--fog);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .mobile-v {
+      font-size: 13px;
+      color: var(--cream);
+      margin-top: 2px;
+      overflow-wrap: anywhere;
+    }
+
+    .mobile-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .mobile-actions .btn {
+      width: auto;
+      justify-content: center;
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+
     .badge {
       display: inline-block;
       padding: 2px 8px;
@@ -1516,37 +1574,28 @@
       }
 
       .data-table {
-        min-width: 0;
-        table-layout: fixed;
+        min-width: 700px;
+        table-layout: auto;
       }
 
       .data-table th,
       .data-table td {
-        padding: 8px 6px;
-        overflow-wrap: anywhere;
-        word-break: break-word;
+        padding: 8px 8px;
+        white-space: nowrap;
       }
 
+      #farmsList,
+      #harvestsList,
+      #jobsList,
+      #compositionsList,
+      #expensesList,
+      #bulkHarvestContainer,
       #recentHarvests {
         overflow-x: auto;
       }
 
       #recentHarvests .data-table {
         min-width: 760px;
-        table-layout: auto;
-      }
-
-      #bulkHarvestContainer {
-        overflow-x: hidden !important;
-      }
-
-      #bulkHarvestContainer .data-table {
-        table-layout: auto;
-      }
-
-      #bulkHarvestContainer td:first-child {
-        white-space: normal;
-        overflow-wrap: anywhere;
       }
 
       .modal {
@@ -2368,6 +2417,7 @@
     const fmt = v => '₹' + Number(v).toLocaleString('en-IN', { maximumFractionDigits: 0 });
     const fmtF = v => '₹' + Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const today = () => new Date().toISOString().split('T')[0];
+    const isMobileView = () => window.matchMedia('(max-width: 980px)').matches;
 
     function wxIcon(c) {
       if (!c || c <= 1) return '☀️'; if (c <= 3) return '⛅'; if (c <= 48) return '🌫️';
@@ -2564,6 +2614,27 @@
         populateFarmSelects(farms);
         const el = document.getElementById('farmsList');
         if (!farms.length) { el.innerHTML = '<div style="color:var(--fog);font-size:13px">No farms yet. Click "+ Add Farm".</div>'; return; }
+        if (isMobileView()) {
+          el.innerHTML = farms.map(f => `<div class="mobile-list-card">
+            <div class="mobile-list-head">
+              <div class="mobile-list-title">${f.name || 'Unnamed Farm'}</div>
+              <span class="badge ba">${f.id || '—'}</span>
+            </div>
+            <div class="mobile-kv">
+              <div><div class="mobile-k">Area</div><div class="mobile-v">${f.area_acres || '—'} ac</div></div>
+              <div><div class="mobile-k">Trees</div><div class="mobile-v">${Number(f.num_trees || 0).toLocaleString()}</div></div>
+              <div><div class="mobile-k">Age</div><div class="mobile-v">${f.tree_age_years || '—'} yr</div></div>
+              <div><div class="mobile-k">Water</div><div class="mobile-v">${f.water_source || '—'}</div></div>
+              <div><div class="mobile-k">Intercrop</div><div class="mobile-v">${f.intercropping ? (f.intercrop_names || 'Yes') : '—'}</div></div>
+              <div><div class="mobile-k">Added</div><div class="mobile-v">${(f.added_on || '').slice(0, 10)}</div></div>
+            </div>
+            <div class="mobile-actions">
+              <button class="btn btn-a" onclick="openEditFarm('${f.id}')">✏ Edit</button>
+              <button class="btn btn-r" onclick="deleteFarm('${f.id}')">🗑 Delete</button>
+            </div>
+          </div>`).join('');
+          return;
+        }
         el.innerHTML = `<table class="data-table"><thead><tr><th>ID</th><th>Name</th><th>Area</th><th>Trees</th><th>Age</th><th>Water</th><th>Intercrop</th><th>Added</th><th></th></tr></thead><tbody>
     ${farms.map(f => `<tr>
       <td><span class="badge ba">${f.id}</span></td>
@@ -3245,6 +3316,24 @@
         const el = document.getElementById('expensesList');
         if (!expenses.length) {
           el.innerHTML = '<div style="color:var(--fog);font-size:13px">No extra expenses logged yet.</div>';
+          return;
+        }
+        if (isMobileView()) {
+          el.innerHTML = expenses.map(x => `<div class="mobile-list-card">
+            <div class="mobile-list-head">
+              <div class="mobile-list-title">${x.category || 'general'}</div>
+              <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--husk)">${x.expense_id || '—'}</span>
+            </div>
+            <div class="mobile-kv">
+              <div><div class="mobile-k">Date</div><div class="mobile-v">${x.date || '—'}</div></div>
+              <div><div class="mobile-k">Farm</div><div class="mobile-v">${x.farm_name || 'General'}</div></div>
+              <div><div class="mobile-k">Description</div><div class="mobile-v">${x.description || '—'}</div></div>
+              <div><div class="mobile-k">Amount</div><div class="mobile-v" style="color:#e05c4b">${fmt(x.amount || 0)}</div></div>
+            </div>
+            <div class="mobile-actions">
+              <button class="btn btn-r" onclick="deleteExpense('${x.expense_id}')">🗑 Delete</button>
+            </div>
+          </div>`).join('');
           return;
         }
         el.innerHTML = `<table class="data-table"><thead><tr><th>ID</th><th>Date</th><th>Farm</th><th>Category</th><th>Description</th><th>Amount</th><th></th></tr></thead><tbody>
