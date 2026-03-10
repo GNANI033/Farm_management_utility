@@ -138,15 +138,20 @@ def fetch_weather(location_name: str) -> dict | None:
 def rain_advisory(wx: dict) -> str:
     r7 = float(wx.get("rain_7day_mm", 0) or 0)
     rt = float(wx.get("rain_today_mm", 0) or 0)
+    rn = float(wx.get("rain_mm", 0) or 0)
+    wc = int(wx.get("weather_code", 0) or 0)
     f3 = wx.get("forecast_3days") or []
     rain3 = round(sum(float((d or {}).get("rain_mm", 0) or 0) for d in f3[:3]), 1)
     heavy_days_3 = sum(1 for d in f3[:3] if float((d or {}).get("rain_mm", 0) or 0) >= 10)
+    rainish_code = wc in {51, 53, 55, 61, 63, 65, 80, 81, 82, 95, 96, 99}
 
     # Copra drying decision should prioritize the near-term (next 3 days).
     if rain3 >= 30 or heavy_days_3 >= 2:
         return f"[bold red]🌧 Wet next 3 days ({rain3}mm) — Not a good window for copra drying[/bold red]"
-    elif rain3 >= 12 or rt > 5:
+    elif rain3 >= 12 or rt > 5 or rn > 0.2:
         return f"[yellow]🌦 Some rain in next 3 days ({rain3}mm) — Dry only with cover/storage backup[/yellow]"
+    elif rainish_code:
+        return f"[yellow]🌦 Showers/rain indicated now (measured rain low: {rain3}mm next 3 days) — Dry only with quick cover backup[/yellow]"
     elif r7 >= 100:
         return "[yellow]🌧 Heavy rain likely later this week ({r7}mm/7days) — Finish drying early and store safely[/yellow]".format(r7=r7)
     else:
