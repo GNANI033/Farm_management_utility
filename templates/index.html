@@ -448,8 +448,10 @@
     }
 
     .price-market-row {
-      display: grid;
-      gap: 2px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
       font-size: 12px;
       color: var(--cream);
       padding: 0;
@@ -457,11 +459,13 @@
 
     .price-market-name {
       overflow-wrap: anywhere;
+      min-width: 0;
     }
 
     .price-market-rate {
       color: var(--husk);
       white-space: nowrap;
+      flex: 0 0 auto;
     }
 
     .price-card {
@@ -2886,7 +2890,10 @@
             </div>
             <div class="price-markets">
               <div class="price-market-title">Market Breakdown (${thanjavurMarkets.length} markets)</div>
-              <div class="price-market-grid">${thanjavurMarkets.map(m => `<div class="price-market-row"><span class="price-market-name">${m.market}</span><span class="price-market-rate">${fmtKg(m.price_kg)}</span></div>`).join('')}</div>
+              <div class="price-market-grid">${thanjavurMarkets.map(m => {
+                const label = String(m.market || '—').replace(/\s*\(Uzhavar Sandhai\s*\)/gi, '').trim();
+                return `<div class="price-market-row"><span class="price-market-name">${label}</span><span class="price-market-rate">${fmtKg(m.price_kg)}</span></div>`;
+              }).join('')}</div>
             </div>`;
         }
         if (tamilNaduEl) {
