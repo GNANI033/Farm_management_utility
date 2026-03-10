@@ -587,6 +587,11 @@
       color: var(--cream)
     }
 
+    .wx-day-icon {
+      font-size: 28px;
+      line-height: 1;
+    }
+
     .wx-day-date {
       font-size: 10px;
       color: var(--fog);
@@ -2475,9 +2480,17 @@
 
     function renderWeather(wx, el) {
       const bc = rainClass(wx.rain_7day_mm || 0);
+      const rainishCodes = new Set([51, 53, 55, 61, 63, 65, 80, 81, 82, 95, 96, 99]);
+      const showeryNow = rainishCodes.has(Number(wx.weather_code || 0));
+      let advisory = wx.advisory || "";
+      let badgeClass = bc;
+      if (showeryNow && /good time to dry copra/i.test(advisory)) {
+        advisory = `🌦 ${wx.description || "Showers"} reported now - Use cover/backup if drying copra`;
+        badgeClass = "warning";
+      }
       const fc = Array.isArray(wx.forecast_3days) ? wx.forecast_3days : [];
       const forecastHtml = fc.length ? `<div class="wx-forecast">${fc.map(d => `<div class="wx-day">
-        <div class="wx-day-top"><span>${d.day || ''}</span><span>${wxIcon(d.weather_code)}</span></div>
+        <div class="wx-day-top"><span>${d.day || ""}</span><span class="wx-day-icon">${wxIcon(d.weather_code)}</span></div>
         <div class="wx-day-date">${d.date || ''}</div>
         <div class="wx-day-temps">${d.temp_max ?? '—'}° / ${d.temp_min ?? '—'}°</div>
         <div class="wx-day-rain">Rain: ${Number(d.rain_mm || 0).toFixed(1)} mm</div>
@@ -2501,7 +2514,7 @@
       <div><div class="ws-label">Max/Min</div><div class="ws-val">${wx.daily_max}° / ${wx.daily_min}°</div></div>
     </div>
     ${forecastHtml}
-    <div class="rain-badge ${bc}">${wx.advisory}</div>
+    <div class="rain-badge ${badgeClass}">${advisory}</div>
     <div style="font-size:10px;color:var(--fog);margin-top:8px;opacity:.6">Updated: ${wx.fetched_at || ''}</div>
   </div>`;
     }
