@@ -1940,8 +1940,12 @@
 
               <div class="form-grid">
                 <div class="fg"><label>Harvest Date *</label><input id="hDate" type="date"></div>
-                <div class="fg"><label>Selling Price / Nut (₹) *</label><input id="hPrice" type="number" step="0.5"
-                    placeholder="18.00"></div>
+                <div class="fg"><label>Sale Mode</label><select id="hSaleMode" onchange="toggleHarvestSaleFields('h')">
+                    <option value="yet_to_decide">Yet to Decide</option>
+                    <option value="sold_per_pcs">Sold per Pcs</option>
+                    <option value="sold_in_kgs">Sold in Kgs</option>
+                    <option value="copra">Copra</option>
+                  </select></div>
                 <div class="fg"><label>Total Labour Cost (₹)</label><input id="hLabour" type="number" value="0"></div>
                 <div class="fg"><label>Total Transport Cost (₹)</label><input id="hTransport" type="number" value="0">
                 </div>
@@ -1949,6 +1953,38 @@
                 </div>
                 <div class="fg s2"><label>Notes</label><textarea id="hNotes"
                     placeholder="Weather, tree health, shared notes…"></textarea></div>
+              </div>
+              <div class="form-grid" id="hSalePcsFields" style="display:none">
+                <div class="fg"><label>Actual Nuts Sold *</label><input id="hActualNuts" type="number"
+                    placeholder="Exact nuts sold"></div>
+                <div class="fg"><label>Price per Nut (₹) *</label><input id="hPrice" type="number" step="0.5"
+                    placeholder="18.00"></div>
+              </div>
+              <div class="form-grid" id="hSaleKgFields" style="display:none">
+                <div class="fg"><label>Total Tons Sold *</label><input id="hTonsSold" type="number" step="0.01"
+                    placeholder="2.50"></div>
+                <div class="fg"><label>Rate per Ton (₹) *</label><input id="hRatePerTon" type="number" step="0.01"
+                    placeholder="25000"></div>
+              </div>
+              <div class="form-grid c3" id="hSaleCopraFields" style="display:none">
+                <div class="fg"><label>Grade 1 Copra Sold (kg)</label><input id="hCopraG1Kg" type="number" step="0.01"
+                    placeholder="0"></div>
+                <div class="fg"><label>Grade 1 Income (₹)</label><input id="hCopraG1Income" type="number" step="0.01"
+                    placeholder="0"></div>
+                <div class="fg"><label>Grade 2 Copra Sold (kg)</label><input id="hCopraG2Kg" type="number" step="0.01"
+                    placeholder="0"></div>
+                <div class="fg"><label>Grade 2 Income (₹)</label><input id="hCopraG2Income" type="number" step="0.01"
+                    placeholder="0"></div>
+                <div class="fg"><label>Grade 3 Copra Sold (kg)</label><input id="hCopraG3Kg" type="number" step="0.01"
+                    placeholder="0"></div>
+                <div class="fg"><label>Grade 3 Income (₹)</label><input id="hCopraG3Income" type="number" step="0.01"
+                    placeholder="0"></div>
+                <div class="fg"><label>Total Shells Sold (kg)</label><input id="hShellsKg" type="number" step="0.01"
+                    placeholder="0"></div>
+                <div class="fg"><label>Shells Income (₹)</label><input id="hShellsIncome" type="number" step="0.01"
+                    placeholder="0"></div>
+                <div class="fg"><label>Total Husk Income (₹)</label><input id="hHuskIncome" type="number" step="0.01"
+                    placeholder="0"></div>
               </div>
 
               <div class="btn-row">
@@ -2083,8 +2119,8 @@
               <div class="fg"><label>Harvest Expenses (₹)</label><input id="cExpenses" type="number" value="0"></div>
             </div>
             <div style="display:flex;gap:10px;align-items:flex-end;margin:10px 0 18px">
-              <div class="fg" style="flex:1"><label>Load from Harvest ID</label><input id="cHarvestId"
-                  placeholder="HRV-2026-001" style="font-family:'DM Mono',monospace;font-size:12px"></div>
+              <div class="fg" style="flex:1"><label>Harvest ID (optional)</label><input id="cHarvestId"
+                  placeholder="Leave blank to load latest Yet to Decide harvest" style="font-family:'DM Mono',monospace;font-size:12px"></div>
               <button class="btn btn-g" onclick="loadHarvestToCalc()">Load</button>
             </div>
             <div class="sdiv">
@@ -2215,11 +2251,35 @@
       <input type="hidden" id="ehId">
       <div class="form-grid">
         <div class="fg"><label>Harvest Date *</label><input id="ehDate" type="date"></div>
-        <div class="fg"><label>Selling Price / Nut (₹) *</label><input id="ehPrice" type="number" step="0.5"></div>
+        <div class="fg"><label>Sale Mode</label><select id="ehSaleMode" onchange="toggleHarvestSaleFields('eh')">
+            <option value="yet_to_decide">Yet to Decide</option>
+            <option value="sold_per_pcs">Sold per Pcs</option>
+            <option value="sold_in_kgs">Sold in Kgs</option>
+            <option value="copra">Copra</option>
+          </select></div>
         <div class="fg"><label>Labour Cost (₹)</label><input id="ehLabour" type="number"></div>
         <div class="fg"><label>Transport Cost (₹)</label><input id="ehTransport" type="number"></div>
         <div class="fg"><label>Other Expenses (₹)</label><input id="ehOther" type="number"></div>
         <div class="fg s2"><label>Notes</label><textarea id="ehNotes"></textarea></div>
+      </div>
+      <div class="form-grid" id="ehSalePcsFields" style="display:none">
+        <div class="fg"><label>Actual Nuts Sold *</label><input id="ehActualNuts" type="number"></div>
+        <div class="fg"><label>Price per Nut (₹) *</label><input id="ehPrice" type="number" step="0.5"></div>
+      </div>
+      <div class="form-grid" id="ehSaleKgFields" style="display:none">
+        <div class="fg"><label>Total Tons Sold *</label><input id="ehTonsSold" type="number" step="0.01"></div>
+        <div class="fg"><label>Rate per Ton (₹) *</label><input id="ehRatePerTon" type="number" step="0.01"></div>
+      </div>
+      <div class="form-grid c3" id="ehSaleCopraFields" style="display:none">
+        <div class="fg"><label>Grade 1 Copra Sold (kg)</label><input id="ehCopraG1Kg" type="number" step="0.01"></div>
+        <div class="fg"><label>Grade 1 Income (₹)</label><input id="ehCopraG1Income" type="number" step="0.01"></div>
+        <div class="fg"><label>Grade 2 Copra Sold (kg)</label><input id="ehCopraG2Kg" type="number" step="0.01"></div>
+        <div class="fg"><label>Grade 2 Income (₹)</label><input id="ehCopraG2Income" type="number" step="0.01"></div>
+        <div class="fg"><label>Grade 3 Copra Sold (kg)</label><input id="ehCopraG3Kg" type="number" step="0.01"></div>
+        <div class="fg"><label>Grade 3 Income (₹)</label><input id="ehCopraG3Income" type="number" step="0.01"></div>
+        <div class="fg"><label>Total Shells Sold (kg)</label><input id="ehShellsKg" type="number" step="0.01"></div>
+        <div class="fg"><label>Shells Income (₹)</label><input id="ehShellsIncome" type="number" step="0.01"></div>
+        <div class="fg"><label>Total Husk Income (₹)</label><input id="ehHuskIncome" type="number" step="0.01"></div>
       </div>
       <div class="sdiv">
         <hr><span>Farm-wise Harvest Counts</span>
@@ -2841,6 +2901,117 @@
       `).join('');
     }
 
+    const HARVEST_SALE_LABELS = {
+      yet_to_decide: 'Yet to Decide',
+      sold_per_pcs: 'Sold per Pcs',
+      sold_in_kgs: 'Sold in Kgs',
+      copra: 'Copra'
+    };
+
+    function harvestSaleSummary(h) {
+      const mode = h.sale_mode || 'yet_to_decide';
+      const d = h.sale_details || {};
+      if (mode === 'sold_per_pcs') {
+        return `<div>${HARVEST_SALE_LABELS[mode]}</div><div style="font-size:11px;color:var(--fog);margin-top:4px">${Number(d.actual_nuts_sold || 0).toLocaleString()} nuts at ₹${Number(d.price_per_nut || 0).toFixed(2)}</div>`;
+      }
+      if (mode === 'sold_in_kgs') {
+        return `<div>${HARVEST_SALE_LABELS[mode]}</div><div style="font-size:11px;color:var(--fog);margin-top:4px">${Number(d.total_tons_sold || 0).toFixed(2)} tons at ₹${Number(d.rate_per_ton || 0).toFixed(2)}/ton</div>`;
+      }
+      if (mode === 'copra') {
+        return `<div>${HARVEST_SALE_LABELS[mode]}</div><div style="font-size:11px;color:var(--fog);margin-top:4px">G1 ${Number(d.copra_grade1_kg || 0).toFixed(1)}kg / ₹${Number(d.copra_grade1_income || 0).toFixed(0)}, G2 ${Number(d.copra_grade2_kg || 0).toFixed(1)}kg / ₹${Number(d.copra_grade2_income || 0).toFixed(0)}, G3 ${Number(d.copra_grade3_kg || 0).toFixed(1)}kg / ₹${Number(d.copra_grade3_income || 0).toFixed(0)}</div>`;
+      }
+      return `<div>${HARVEST_SALE_LABELS[mode]}</div><div style="font-size:11px;color:var(--fog);margin-top:4px">Use Sell Calculator when ready</div>`;
+    }
+
+    function toggleHarvestSaleFields(prefix) {
+      const mode = document.getElementById(`${prefix}SaleMode`)?.value || 'yet_to_decide';
+      const pcs = document.getElementById(`${prefix}SalePcsFields`);
+      const kg = document.getElementById(`${prefix}SaleKgFields`);
+      const copra = document.getElementById(`${prefix}SaleCopraFields`);
+      if (pcs) pcs.style.display = mode === 'sold_per_pcs' ? 'grid' : 'none';
+      if (kg) kg.style.display = mode === 'sold_in_kgs' ? 'grid' : 'none';
+      if (copra) copra.style.display = mode === 'copra' ? 'grid' : 'none';
+    }
+
+    function fillHarvestSaleFields(prefix, harvest = null) {
+      const d = harvest?.sale_details || {};
+      document.getElementById(`${prefix}SaleMode`).value = harvest?.sale_mode || 'yet_to_decide';
+      const setVal = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.value = value ?? '';
+      };
+      setVal(`${prefix}ActualNuts`, d.actual_nuts_sold ?? '');
+      setVal(`${prefix}Price`, d.price_per_nut ?? harvest?.selling_price ?? '');
+      setVal(`${prefix}TonsSold`, d.total_tons_sold ?? '');
+      setVal(`${prefix}RatePerTon`, d.rate_per_ton ?? '');
+      setVal(`${prefix}CopraG1Kg`, d.copra_grade1_kg ?? '');
+      setVal(`${prefix}CopraG1Income`, d.copra_grade1_income ?? '');
+      setVal(`${prefix}CopraG2Kg`, d.copra_grade2_kg ?? '');
+      setVal(`${prefix}CopraG2Income`, d.copra_grade2_income ?? '');
+      setVal(`${prefix}CopraG3Kg`, d.copra_grade3_kg ?? '');
+      setVal(`${prefix}CopraG3Income`, d.copra_grade3_income ?? '');
+      setVal(`${prefix}ShellsKg`, d.shells_kg ?? '');
+      setVal(`${prefix}ShellsIncome`, d.shells_income ?? '');
+      setVal(`${prefix}HuskIncome`, d.husk_income ?? '');
+      toggleHarvestSaleFields(prefix);
+    }
+
+    function readHarvestSale(prefix) {
+      const sale_mode = document.getElementById(`${prefix}SaleMode`).value || 'yet_to_decide';
+      if (sale_mode === 'sold_per_pcs') {
+        const actual_nuts_sold = parseInt(document.getElementById(`${prefix}ActualNuts`).value) || 0;
+        const price_per_nut = parseFloat(document.getElementById(`${prefix}Price`).value) || 0;
+        return { sale_mode, sale_details: { actual_nuts_sold, price_per_nut }, selling_price: price_per_nut };
+      }
+      if (sale_mode === 'sold_in_kgs') {
+        return {
+          sale_mode,
+          sale_details: {
+            total_tons_sold: parseFloat(document.getElementById(`${prefix}TonsSold`).value) || 0,
+            rate_per_ton: parseFloat(document.getElementById(`${prefix}RatePerTon`).value) || 0
+          },
+          selling_price: 0
+        };
+      }
+      if (sale_mode === 'copra') {
+        return {
+          sale_mode,
+          sale_details: {
+            copra_grade1_kg: parseFloat(document.getElementById(`${prefix}CopraG1Kg`).value) || 0,
+            copra_grade1_income: parseFloat(document.getElementById(`${prefix}CopraG1Income`).value) || 0,
+            copra_grade2_kg: parseFloat(document.getElementById(`${prefix}CopraG2Kg`).value) || 0,
+            copra_grade2_income: parseFloat(document.getElementById(`${prefix}CopraG2Income`).value) || 0,
+            copra_grade3_kg: parseFloat(document.getElementById(`${prefix}CopraG3Kg`).value) || 0,
+            copra_grade3_income: parseFloat(document.getElementById(`${prefix}CopraG3Income`).value) || 0,
+            shells_kg: parseFloat(document.getElementById(`${prefix}ShellsKg`).value) || 0,
+            shells_income: parseFloat(document.getElementById(`${prefix}ShellsIncome`).value) || 0,
+            husk_income: parseFloat(document.getElementById(`${prefix}HuskIncome`).value) || 0,
+          },
+          selling_price: 0
+        };
+      }
+      return { sale_mode: 'yet_to_decide', sale_details: {}, selling_price: 0 };
+    }
+
+    function validateHarvestSalePayload(sale) {
+      if (sale.sale_mode === 'sold_per_pcs' && (!sale.sale_details.actual_nuts_sold || !sale.sale_details.price_per_nut)) {
+        toast('Enter actual nuts sold and price per nut', true);
+        return false;
+      }
+      if (sale.sale_mode === 'sold_in_kgs' && (!sale.sale_details.total_tons_sold || !sale.sale_details.rate_per_ton)) {
+        toast('Enter total tons sold and rate per ton', true);
+        return false;
+      }
+      if (sale.sale_mode === 'copra') {
+        const d = sale.sale_details;
+        if (!(d.copra_grade1_income || d.copra_grade2_income || d.copra_grade3_income || d.shells_income || d.husk_income || d.copra_grade1_kg || d.copra_grade2_kg || d.copra_grade3_kg || d.shells_kg)) {
+          toast('Enter copra, shell, or husk sale details', true);
+          return false;
+        }
+      }
+      return true;
+    }
+
     async function loadHarvests() {
       try {
         const [farms, harvests] = await Promise.all([api('GET', '/api/farms'), api('GET', '/api/harvests')]);
@@ -2853,13 +3024,13 @@
         el.innerHTML = `<table class="data-table harvest-table"><colgroup>
       <col class="col-id"><col class="col-date"><col class="col-farms"><col class="col-total"><col class="col-price"><col class="col-revenue"><col class="col-expenses"><col class="col-profit"><col class="col-season"><col class="col-next"><col class="col-actions">
     </colgroup><thead><tr>
-      <th>ID</th><th>Date</th><th>Farms</th><th>Total Nuts</th><th>₹/Nut</th><th>Revenue</th><th>Expenses</th><th>Profit</th><th>Season</th><th>Next Window</th><th></th>
+      <th>ID</th><th>Date</th><th>Farms</th><th>Total Nuts</th><th>Sale Status</th><th>Revenue</th><th>Expenses</th><th>Profit</th><th>Season</th><th>Next Window</th><th></th>
     </tr></thead><tbody>
     ${harvests.map(h => `<tr>
       <td><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--husk)">${h.harvest_id || '—'}${h.last_edited ? '<span style="color:var(--fog)" title="Edited"> ✏</span>' : ''}</span></td>
       <td>${h.harvest_date}</td><td><div>${harvestFarmSummary(h)}</div><div style="font-size:11px;color:var(--fog);margin-top:4px">${harvestFarmBreakdown(h)}</div></td>
       <td>${Number(h.nuts_harvested || 0).toLocaleString()}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:12px">₹${parseFloat(h.selling_price || 0).toFixed(2)}</td>
+      <td>${harvestSaleSummary(h)}</td>
       <td style="color:var(--lime)">${fmt(h.revenue)}</td>
       <td style="color:#e05c4b">${fmt(h.total_expenses)}</td>
       <td style="color:${h.profit >= 0 ? 'var(--lime)' : '#e05c4b'};font-weight:500">${fmt(h.profit)}</td>
@@ -2885,6 +3056,7 @@
         </tr>
       `).join('');
       document.getElementById('hDate').value = today();
+      fillHarvestSaleFields('h');
     }
 
     async function addBulkHarvest() {
@@ -2905,10 +3077,14 @@
       });
 
       if (!farmsData.length) return toast('Enter nut counts for at least one farm', true);
+      const sale = readHarvestSale('h');
+      if (!validateHarvestSalePayload(sale)) return;
 
       const b = {
         harvest_date: document.getElementById('hDate').value,
-        selling_price: parseFloat(document.getElementById('hPrice').value) || 0,
+        sale_mode: sale.sale_mode,
+        sale_details: sale.sale_details,
+        selling_price: sale.selling_price,
         labour_cost: parseFloat(document.getElementById('hLabour').value) || 0,
         transport_cost: parseFloat(document.getElementById('hTransport').value) || 0,
         other_expenses: parseFloat(document.getElementById('hOther').value) || 0,
@@ -2916,12 +3092,12 @@
         farms: farmsData
       };
 
-      if (!b.harvest_date || !b.selling_price)
-        return toast('Date and selling price are required', true);
+      if (!b.harvest_date)
+        return toast('Date is required', true);
 
       try {
         await api('POST', '/api/harvests/bulk', b);
-        toast(`✅ Bulk harvest logged successfully!`);
+        toast('✅ Bulk harvest logged successfully!');
         switchTab('harvests', 'harvests-list');
         loadHarvests();
       } catch (e) { toast(e.message, true); }
@@ -2932,11 +3108,11 @@
       if (!h) return;
       document.getElementById('ehId').value = hid;
       document.getElementById('ehDate').value = h.harvest_date || '';
-      document.getElementById('ehPrice').value = h.selling_price || 0;
       document.getElementById('ehLabour').value = h.labour_cost || 0;
       document.getElementById('ehTransport').value = h.transport_cost || 0;
       document.getElementById('ehOther').value = h.other_expenses || 0;
       document.getElementById('ehNotes').value = h.notes || '';
+      fillHarvestSaleFields('eh', h);
       renderEditHarvestFarms(h);
       openModal('modalHarvest');
     }
@@ -2959,19 +3135,22 @@
           });
         }
       });
+      const sale = readHarvestSale('eh');
+      if (!validateHarvestSalePayload(sale)) return;
       const b = {
         harvest_date: document.getElementById('ehDate').value,
-        selling_price: parseFloat(document.getElementById('ehPrice').value) || 0,
+        sale_mode: sale.sale_mode,
+        sale_details: sale.sale_details,
+        selling_price: sale.selling_price,
         labour_cost: parseFloat(document.getElementById('ehLabour').value) || 0,
         transport_cost: parseFloat(document.getElementById('ehTransport').value) || 0,
         other_expenses: parseFloat(document.getElementById('ehOther').value) || 0,
         notes: document.getElementById('ehNotes').value,
         farms
       };
-      if (!b.harvest_date || !b.selling_price || !b.farms.length)
-        return toast('Date, selling price and at least one farm entry are required', true);
+      if (!b.harvest_date || !b.farms.length)
+        return toast('Date and at least one farm entry are required', true);
       try {
-        console.log('Saving harvest:', hid, b);
         await api('PUT', `/api/harvests/${hid}`, b);
         toast('✅ Harvest updated!'); closeModal('modalHarvest'); loadHarvests();
       } catch (e) { toast(e.message, true); }
@@ -2982,7 +3161,6 @@
       if (!hid) return;
       if (!confirm('Are you sure you want to delete this harvest record?')) return;
       try {
-        console.log('Deleting harvest:', hid);
         await api('DELETE', `/api/harvests/${hid}`);
         toast('🗑 Harvest record deleted');
         closeModal('modalHarvest');
@@ -3353,14 +3531,16 @@
 
     async function loadHarvestToCalc() {
       const hid = document.getElementById('cHarvestId').value.trim().toUpperCase();
-      if (!hid) return;
       try {
         const harvests = await api('GET', '/api/harvests');
-        const h = harvests.find(x => (x.harvest_id || '').toUpperCase() === hid);
-        if (!h) return toast('Harvest ID not found', true);
-        document.getElementById('cNuts').value = h.nuts_harvested;
-        document.getElementById('cGoodNuts').value = h.good_nuts || h.nuts_harvested;
-        document.getElementById('cExpenses').value = h.total_expenses;
+        const h = hid
+          ? harvests.find(x => (x.harvest_id || '').toUpperCase() === hid)
+          : harvests.find(x => (x.sale_mode || 'yet_to_decide') === 'yet_to_decide');
+        if (!h) return toast(hid ? 'Harvest ID not found' : 'No Yet to Decide harvest found', true);
+        document.getElementById('cHarvestId').value = h.harvest_id || '';
+        document.getElementById('cNuts').value = h.nuts_harvested || 0;
+        document.getElementById('cGoodNuts').value = h.good_nuts || h.nuts_harvested || 0;
+        document.getElementById('cExpenses').value = h.total_expenses || 0;
         toast(`✅ Loaded ${h.harvest_id}`);
       } catch (e) { toast(e.message, true); }
     }

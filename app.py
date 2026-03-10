@@ -4,7 +4,7 @@ CocoTrack Web UI — Flask wrapper around core.py
 Run: python app.py  →  http://localhost:3333
 """
 from flask import Flask, render_template, request, jsonify
-import sys, os, uuid, re, secrets
+import sys, os, uuid, re, secrets, json
 sys.path.insert(0, os.path.dirname(__file__))
 
 from core import (
@@ -354,12 +354,17 @@ def _build_harvest_projection(harvests):
 def _iter_harvest_farm_entries(harvests):
     for h in harvests:
         farms = h.get("farms") or []
+        total_good = sum(int(f.get("good_nuts", 0) or 0) for f in farms) or max(int(h.get("good_nuts", 0) or 0), 1)
+        total_nuts = sum(int(f.get("nuts_harvested", 0) or 0) for f in farms) or max(int(h.get("nuts_harvested", 0) or 0), 1)
         if farms:
             for farm in farms:
                 merged = dict(farm)
                 merged["harvest_id"] = h.get("harvest_id", "")
                 merged["harvest_date"] = h.get("harvest_date", "")
                 merged["selling_price"] = h.get("selling_price", 0)
+                merged["sale_mode"] = h.get("sale_mode", "yet_to_decide")
+                merged["revenue_share"] = round(float(h.get("revenue", 0) or 0) * (int(farm.get("good_nuts", 0) or 0) / total_good), 2)
+                merged["profit_share"] = round(float(h.get("profit", 0) or 0) * (int(farm.get("nuts_harvested", 0) or 0) / total_nuts), 2)
                 yield merged
             continue
 
@@ -370,6 +375,7 @@ def _iter_harvest_farm_entries(harvests):
             "harvest_id": h.get("harvest_id", ""),
             "harvest_date": h.get("harvest_date", ""),
             "selling_price": h.get("selling_price", 0),
+            "sale_mode": h.get("sale_mode", "yet_to_decide"),
             "farm_id": fid,
             "farm_name": h.get("farm_name", ""),
             "num_trees": h.get("num_trees", 0),
@@ -377,7 +383,120 @@ def _iter_harvest_farm_entries(harvests):
             "defective_nuts": h.get("defective_nuts", 0),
             "good_nuts": h.get("good_nuts", 0),
             "nuts_per_tree": h.get("nuts_per_tree", 0),
+            "revenue_share": h.get("revenue", 0),
+            "profit_share": h.get("profit", 0),
         }
+
+
+HARVEST_SALE_MODES = {"yet_to_decide", "sold_per_pcs", "sold_in_kgs", "copra"}
+
+
+def _coerce_float(value, default=0.0):
+    try:
+        return float(value or 0)
+    except (TypeError, ValueError):
+        return default
+
+
+def _coerce_int(value, default=0):
+    try:
+        return int(float(value or 0))
+    except (TypeError, ValueError):
+        return default
+
+
+def _normalize_sale_mode(value):
+    mode = str(value or "yet_to_decide").strip().lower()
+    aliases = {
+        "yet_to_decide": "yet_to_decide",
+        "undecided": "yet_to_decide",
+        "sold_per_pcs": "sold_per_pcs",
+        "pieces": "sold_per_pcs",
+        "pcs": "sold_per_pcs",
+        "sold_in_kgs": "sold_in_kgs",
+        "weight": "sold_in_kgs",
+        "kgs": "sold_in_kgs",
+        "kg": "sold_in_kgs",
+        "copra": "copra",
+    }
+    mode = aliases.get(mode, mode)
+    return mode if mode in HARVEST_SALE_MODES else "yet_to_decide"
+
+
+def _normalize_harvest_sale(entry):
+    mode = _normalize_sale_mode(entry.get("sale_mode"))
+    details = dict(entry.get("sale_details") or {})
+    good_nuts = _coerce_int(entry.get("good_nuts", entry.get("nuts_harvested", 0)))
+
+    if mode == "yet_to_decide" and _coerce_float(entry.get("selling_price")) > 0:
+        mode = "sold_per_pcs"
+        details.setdefault("price_per_nut", _coerce_float(entry.get("selling_price")))
+        details.setdefault("actual_nuts_sold", good_nuts)
+
+    if mode == "sold_per_pcs":
+        price = _coerce_float(details.get("price_per_nut", entry.get("selling_price", 0)))
+        actual = max(_coerce_int(details.get("actual_nuts_sold", good_nuts)), 0)
+        details = {
+            "price_per_nut": price,
+            "actual_nuts_sold": actual,
+        }
+        entry["selling_price"] = price
+    elif mode == "sold_in_kgs":
+        details = {
+            "total_tons_sold": _coerce_float(details.get("total_tons_sold")),
+            "rate_per_ton": _coerce_float(details.get("rate_per_ton")),
+        }
+        entry["selling_price"] = 0.0
+    elif mode == "copra":
+        details = {
+            "copra_grade1_kg": _coerce_float(details.get("copra_grade1_kg")),
+            "copra_grade1_income": _coerce_float(details.get("copra_grade1_income")),
+            "copra_grade2_kg": _coerce_float(details.get("copra_grade2_kg")),
+            "copra_grade2_income": _coerce_float(details.get("copra_grade2_income")),
+            "copra_grade3_kg": _coerce_float(details.get("copra_grade3_kg")),
+            "copra_grade3_income": _coerce_float(details.get("copra_grade3_income")),
+            "shells_kg": _coerce_float(details.get("shells_kg")),
+            "shells_income": _coerce_float(details.get("shells_income")),
+            "husk_income": _coerce_float(details.get("husk_income")),
+        }
+        entry["selling_price"] = 0.0
+    else:
+        details = {}
+        entry["selling_price"] = 0.0
+
+    entry["sale_mode"] = mode
+    entry["sale_details"] = details
+    return mode, details
+
+
+def _compute_harvest_revenue(entry):
+    mode, details = _normalize_harvest_sale(entry)
+    if mode == "sold_per_pcs":
+        return round(max(_coerce_int(details.get("actual_nuts_sold")), 0) * _coerce_float(details.get("price_per_nut")), 2)
+    if mode == "sold_in_kgs":
+        return round(_coerce_float(details.get("total_tons_sold")) * _coerce_float(details.get("rate_per_ton")), 2)
+    if mode == "copra":
+        return round(
+            _coerce_float(details.get("copra_grade1_income"))
+            + _coerce_float(details.get("copra_grade2_income"))
+            + _coerce_float(details.get("copra_grade3_income"))
+            + _coerce_float(details.get("shells_income"))
+            + _coerce_float(details.get("husk_income")),
+            2,
+        )
+    return 0.0
+
+
+def _refresh_harvests(data, persist=False):
+    changed = False
+    for harvest in data.get("harvests", []):
+        before = json.dumps(harvest, sort_keys=True, default=str)
+        _recalculate_harvest(harvest, data)
+        after = json.dumps(harvest, sort_keys=True, default=str)
+        changed = changed or before != after
+    if changed and persist:
+        save_data(data)
+    return data.get("harvests", [])
 
 
 def _build_farm_performance(harvests, farms):
@@ -437,7 +556,6 @@ def _build_farm_performance(harvests, farms):
 
 def _recalculate_harvest(entry, data=None):
     farms = entry.get("farms") or []
-    selling_price = float(entry.get("selling_price", 0) or 0)
     labour_cost = float(entry.get("labour_cost", 0) or 0)
     transport_cost = float(entry.get("transport_cost", 0) or 0)
     other_expenses = float(entry.get("other_expenses", 0) or 0)
@@ -464,15 +582,10 @@ def _recalculate_harvest(entry, data=None):
             if farm.get("farm_name"):
                 farm_names.append(farm["farm_name"])
 
-        revenue = total_good * selling_price
-        expenses = labour_cost + transport_cost + other_expenses
         entry.update(
             nuts_harvested=total_nuts,
             defective_nuts=total_defective,
             good_nuts=total_good,
-            revenue=round(revenue, 2),
-            total_expenses=round(expenses, 2),
-            profit=round(revenue - expenses, 2),
             nuts_per_tree=round(total_nuts / max(total_trees, 1), 2),
             farm_count=len(farms),
             farm_names=", ".join(farm_names),
@@ -480,17 +593,20 @@ def _recalculate_harvest(entry, data=None):
     else:
         num_trees = int(entry.get("num_trees", 0) or 0)
         good = int(entry["nuts_harvested"]) - int(entry["defective_nuts"])
-        revenue = good * selling_price
-        expenses = labour_cost + transport_cost + other_expenses
         entry.update(
             good_nuts=good,
-            revenue=round(revenue, 2),
-            total_expenses=round(expenses, 2),
-            profit=round(revenue - expenses, 2),
             nuts_per_tree=round(int(entry["nuts_harvested"]) / max(num_trees, 1), 2),
             farm_count=1 if entry.get("farm_id") else 0,
             farm_names=entry.get("farm_name", ""),
         )
+
+    revenue = _compute_harvest_revenue(entry)
+    expenses = labour_cost + transport_cost + other_expenses
+    entry.update(
+        revenue=round(revenue, 2),
+        total_expenses=round(expenses, 2),
+        profit=round(revenue - expenses, 2),
+    )
 
     try:
         hdate = datetime.strptime(entry["harvest_date"], "%Y-%m-%d")
@@ -726,7 +842,7 @@ def delete_farm(farm_id):
 def get_harvests():
     data     = load_data()
     farm_id  = request.args.get("farm_id")
-    harvests = data.get("harvests", [])
+    harvests = _refresh_harvests(data, persist=True)
     if farm_id:
         harvests = [
             h for h in harvests
@@ -751,6 +867,8 @@ def add_harvest():
             "nuts_harvested": int(body.get("nuts_harvested", 0)),
             "defective_nuts": int(body.get("defective_nuts", 0)),
         }],
+        "sale_mode": _normalize_sale_mode(body.get("sale_mode")),
+        "sale_details": body.get("sale_details") or {},
         "selling_price": float(body.get("selling_price", 0)),
         "labour_cost": float(body.get("labour_cost", 0)),
         "transport_cost": float(body.get("transport_cost", 0)),
@@ -763,14 +881,11 @@ def add_harvest():
     data["harvests"].append(entry)
     save_data(data)
     return ok(entry)
-
 @app.route("/api/harvests/bulk", methods=["POST"])
 def bulk_harvest():
     data = load_data()
     body = request.json
-    
     harvest_date = body.get("harvest_date", today_str())
-    selling_price = float(body.get("selling_price", 0))
     labour_cost = float(body.get("labour_cost", 0))
     transport_cost = float(body.get("transport_cost", 0))
     other_expenses = float(body.get("other_expenses", 0))
@@ -779,7 +894,6 @@ def bulk_harvest():
     active_entries = [e for e in farm_entries if int(e.get("nuts_harvested", 0)) > 0]
     if not active_entries:
         return err("No nuts harvested in any farm")
-
     farm_details = []
     for e in active_entries:
         farm = next((f for f in data["farms"] if f["id"] == e["farm_id"]), None)
@@ -792,15 +906,15 @@ def bulk_harvest():
             "nuts_harvested": int(e.get("nuts_harvested", 0) or 0),
             "defective_nuts": int(e.get("defective_nuts", 0) or 0),
         })
-
     if not farm_details:
         return err("No valid farms found for this harvest")
-
     entry = {
         "harvest_id": generate_harvest_id(data),
         "harvest_date": harvest_date,
         "farms": farm_details,
-        "selling_price": selling_price,
+        "sale_mode": _normalize_sale_mode(body.get("sale_mode")),
+        "sale_details": body.get("sale_details") or {},
+        "selling_price": float(body.get("selling_price", 0)),
         "labour_cost": labour_cost,
         "transport_cost": transport_cost,
         "other_expenses": other_expenses,
@@ -812,7 +926,6 @@ def bulk_harvest():
     data["harvests"].append(entry)
     save_data(data)
     return ok(entry)
-
 @app.route("/api/harvests/<harvest_id>", methods=["PUT"])
 def update_harvest(harvest_id):
     """Full edit of any harvest field."""
@@ -824,6 +937,10 @@ def update_harvest(harvest_id):
             for fld in ["harvest_date", "selling_price", "labour_cost", "transport_cost", "other_expenses", "notes"]:
                 if fld in body:
                     h[fld] = body[fld]
+            if "sale_mode" in body:
+                h["sale_mode"] = _normalize_sale_mode(body.get("sale_mode"))
+            if "sale_details" in body:
+                h["sale_details"] = body.get("sale_details") or {}
             if "farms" in body and isinstance(body["farms"], list):
                 updated_farms = []
                 for farm_entry in body["farms"]:
@@ -848,20 +965,22 @@ def update_harvest(harvest_id):
             save_data(data)
             return ok(h)
     return err("Harvest not found", 404)
-
 @app.route("/api/harvests/<harvest_id>", methods=["PATCH"])
 def patch_harvest_price(harvest_id):
     """Quick price-only patch."""
     data = load_data()
     for h in data["harvests"]:
         if h.get("harvest_id") == harvest_id:
-            h["selling_price"] = float(request.json.get("selling_price", h["selling_price"]))
+            details = dict(h.get("sale_details") or {})
+            details["price_per_nut"] = float(request.json.get("selling_price", h.get("selling_price", 0)))
+            details.setdefault("actual_nuts_sold", int(h.get("good_nuts", h.get("nuts_harvested", 0)) or 0))
+            h["sale_mode"] = "sold_per_pcs"
+            h["sale_details"] = details
             _recalculate_harvest(h, data)
             h["last_edited"] = datetime.now().isoformat()
             save_data(data)
             return ok(h)
     return err("Harvest not found", 404)
-
 @app.route("/api/harvests/<harvest_id>", methods=["DELETE"])
 def delete_harvest(harvest_id):
     data = load_data()
@@ -1340,17 +1459,18 @@ def save_settings_api():
 @app.route("/api/stats", methods=["GET"])
 def get_stats():
     data     = load_data()
-    harvests = data.get("harvests",[])
+    harvests = _refresh_harvests(data, persist=True)
     farms    = data.get("farms",[])
     season   = get_current_season()
     lo, hi   = _get_harvest_interval_from_settings(data, season)
     fs = {}
     for h in _iter_harvest_farm_entries(harvests):
         fid = h["farm_id"]
-        revenue = float(h.get("good_nuts", 0) or 0) * float(h.get("selling_price", 0) or 0)
+        revenue = float(h.get("revenue_share", 0) or 0)
+        profit = float(h.get("profit_share", revenue) or 0)
         fs.setdefault(fid,{"nuts":[],"profit":[],"revenue":[],"per_tree":[]})
         fs[fid]["nuts"].append(h["nuts_harvested"])
-        fs[fid]["profit"].append(revenue)
+        fs[fid]["profit"].append(profit)
         fs[fid]["revenue"].append(revenue)
         fs[fid]["per_tree"].append(h.get("nuts_per_tree",0))
 
@@ -1398,6 +1518,10 @@ if __name__ == "__main__":
     print("\nCocoTrack Web UI starting...")
     print("   Open http://localhost:3333 in your browser\n")
     app.run(debug=False, host=os.environ.get("HOST", "127.0.0.1"), port=3333)
+
+
+
+
 
 
 
