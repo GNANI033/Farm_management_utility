@@ -657,6 +657,44 @@
       background: rgba(255, 255, 255, .03)
     }
 
+    .harvest-table .col-id {
+      width: 9%;
+    }
+
+    .harvest-table .col-date {
+      width: 8%;
+    }
+
+    .harvest-table .col-farms {
+      width: 24%;
+    }
+
+    .harvest-table .col-total {
+      width: 8%;
+    }
+
+    .harvest-table .col-price {
+      width: 6%;
+    }
+
+    .harvest-table .col-revenue,
+    .harvest-table .col-expenses,
+    .harvest-table .col-profit {
+      width: 8%;
+    }
+
+    .harvest-table .col-season {
+      width: 7%;
+    }
+
+    .harvest-table .col-next {
+      width: 12%;
+    }
+
+    .harvest-table .col-actions {
+      width: 10%;
+    }
+
     .mobile-list-card {
       border: 1px solid var(--card-border);
       border-radius: 12px;
@@ -2791,7 +2829,9 @@
         const el = document.getElementById('harvestsList');
         if (!harvests.length) { el.innerHTML = '<div style="color:var(--fog);font-size:13px">No harvests logged yet. Click "+ Log Harvest".</div>'; return; }
         const seasonBadge = s => s === 'summer' ? 'by' : s === 'winter' || s === 'monsoon' ? 'bb' : 'bg';
-        el.innerHTML = `<table class="data-table"><thead><tr>
+        el.innerHTML = `<table class="data-table harvest-table"><colgroup>
+      <col class="col-id"><col class="col-date"><col class="col-farms"><col class="col-total"><col class="col-price"><col class="col-revenue"><col class="col-expenses"><col class="col-profit"><col class="col-season"><col class="col-next"><col class="col-actions">
+    </colgroup><thead><tr>
       <th>ID</th><th>Date</th><th>Farms</th><th>Total Nuts</th><th>₹/Nut</th><th>Revenue</th><th>Expenses</th><th>Profit</th><th>Season</th><th>Next Window</th><th></th>
     </tr></thead><tbody>
     ${harvests.map(h => `<tr>
@@ -3573,6 +3613,7 @@
 </body>
 
 </html>
+
 
 
 

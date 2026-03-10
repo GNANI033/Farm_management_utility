@@ -1,0 +1,6 @@
+# Runtime / local app data
+data.json
+
+# Python cache artifacts
+__pycache__/
+*.py[cod]
