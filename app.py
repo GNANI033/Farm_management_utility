@@ -588,10 +588,6 @@ def auth_setup():
     if data.get("totp_secret"):
         return err("Setup already completed")
 
-    if os.environ.get("ALLOW_AUTH_SETUP", "0") != "1":
-        return err("Initial setup is disabled. Set ALLOW_AUTH_SETUP=1 temporarily.", 403)
-
-
     secret = pyotp.random_base32()
     data["totp_secret"] = secret
     save_data(data)
