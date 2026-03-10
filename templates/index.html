@@ -242,6 +242,61 @@
       color: var(--cream)
     }
 
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-left: auto;
+    }
+
+    .notification-btn {
+      position: relative;
+      width: 42px;
+      height: 42px;
+      border-radius: 999px;
+      border: 1px solid var(--card-border);
+      background: rgba(212, 168, 75, .12);
+      color: var(--husk);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform var(--transition), background var(--transition), border-color var(--transition);
+    }
+
+    .notification-btn:hover {
+      transform: translateY(-1px);
+      background: rgba(212, 168, 75, .2);
+      border-color: rgba(212, 168, 75, .35);
+    }
+
+    .notification-icon {
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .notification-count {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      min-width: 20px;
+      height: 20px;
+      padding: 0 6px;
+      border-radius: 999px;
+      background: #e05c4b;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, .28);
+    }
+
+    .notification-count.hidden {
+      display: none;
+    }
+
     .farmer-chip {
       display: flex;
       align-items: center;
@@ -1725,6 +1780,15 @@
         font-size: 18px;
       }
 
+      .topbar-actions {
+        gap: 8px;
+      }
+
+      .notification-btn {
+        width: 38px;
+        height: 38px;
+      }
+
       .farmer-chip {
         font-size: 11px;
         padding: 5px 10px;
@@ -1942,7 +2006,6 @@
       <nav class="nav">
         <div class="nav-section">Overview</div>
         <div class="nav-item active" data-page="dashboard"><span class="icon">📊</span> Dashboard</div>
-        <div class="nav-item" data-page="weather"><span class="icon">🌤</span> Weather</div>
         <div class="nav-section">Farm</div>
         <div class="nav-item" data-page="farms"><span class="icon">🌱</span> Farms</div>
         <div class="nav-item" data-page="harvests"><span class="icon">🥥</span> Harvests</div>
@@ -1969,7 +2032,13 @@
           <button id="mobileMenuBtn" aria-label="Open menu" title="Menu">☰</button>
           <div class="topbar-title" id="pageTitle">Dashboard</div>
         </div>
-        <div class="farmer-chip"><span>👨‍🌾</span><span id="farmerName">Loading…</span></div>
+        <div class="topbar-actions">
+          <button id="notificationBtn" class="notification-btn" type="button" aria-label="Open alerts" title="View alerts">
+            <span class="notification-icon">🔔</span>
+            <span class="notification-count hidden" id="notificationCount">0</span>
+          </button>
+          <div class="farmer-chip"><span>👨‍🌾</span><span id="farmerName">Loading…</span></div>
+        </div>
       </header>
       <div class="content">
 
@@ -2012,7 +2081,7 @@
             </div>
           </div>
           <div id="dashWeather"></div>
-          <div class="card">
+          <div class="card" id="alertsCard">
             <div class="card-title">⚡ Active Alerts</div>
             <div id="alertsList">
               <div class="loading">
@@ -2048,19 +2117,6 @@
               </div>
             </div>
           </div>
-        </div>
-
-        <!-- Weather -->
-        <div class="page" id="page-weather">
-          <div class="card" style="margin-bottom:16px">
-            <div class="card-title">📍 Check Location</div>
-            <div style="display:flex;gap:10px;align-items:flex-end">
-              <div class="fg" style="flex:1"><label>Location / District</label><input id="wxLocInput"
-                  placeholder="e.g. Pollachi, Coimbatore, Thrissur"></div>
-              <button class="btn btn-p" onclick="fetchWeatherPage()">🔍 Fetch</button>
-            </div>
-          </div>
-          <div id="weatherPageResult"></div>
         </div>
 
         <!-- Farms -->
@@ -2553,7 +2609,7 @@
 
   <script>
     // ── State ──────────────────────────────────────────────────────────────────
-    const S = { farms: [], harvests: [], catalogue: {}, calcLastBody: null, calcLastResults: null };
+    const S = { farms: [], harvests: [], catalogue: {}, calcLastBody: null, calcLastResults: null, alertKeys: new Set(), unreadAlertKeys: new Set(), alertsInitialized: false };
     let CSRF_TOKEN = '';
 
     // ── API ────────────────────────────────────────────────────────────────────
@@ -2588,7 +2644,7 @@
 
     // ── Nav ────────────────────────────────────────────────────────────────────
     const PAGE_TITLES = {
-      dashboard: 'Dashboard', weather: 'Weather & Rain',
+      dashboard: 'Dashboard',
       farms: 'Farms', harvests: 'Harvests', fertilizers: 'Fertilizers',
       expenses: 'Expense Manager', calculator: 'Sell Calculator', predictions: 'Yield Predictions',
       profile: 'Farmer Profile', settings: 'Settings'
@@ -2609,17 +2665,19 @@
     });
 
     document.getElementById('mobileMenuBackdrop')?.addEventListener('click', () => setMobileMenu(false));
+    document.getElementById('notificationBtn')?.addEventListener('click', openAlertsPanel);
+
+    function goToPage(page) {
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === page));
+      document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === 'page-' + page));
+      document.getElementById('pageTitle').textContent = PAGE_TITLES[page] || page;
+      loadPage(page);
+      if (window.matchMedia('(max-width: 980px)').matches) setMobileMenu(false);
+    }
 
     document.querySelectorAll('.nav-item').forEach(el => {
       el.addEventListener('click', () => {
-        const page = el.dataset.page;
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-        el.classList.add('active');
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.getElementById('page-' + page).classList.add('active');
-        document.getElementById('pageTitle').textContent = PAGE_TITLES[page] || page;
-        loadPage(page);
-        if (window.matchMedia('(max-width: 980px)').matches) setMobileMenu(false);
+        goToPage(el.dataset.page);
       });
     });
 
@@ -2636,6 +2694,48 @@
       if (p === 'profile') loadProfile();
       if (p === 'settings') loadSettings();
       if (p === 'calculator') loadCalcWeather();
+    }
+
+    function getAlertKey(alert) {
+      return [alert.type || '', alert.severity || '', alert.farm || '', alert.message || ''].join('||');
+    }
+
+    function updateNotificationBadge() {
+      const badge = document.getElementById('notificationCount');
+      if (!badge) return;
+      const unread = S.unreadAlertKeys.size;
+      badge.textContent = unread > 99 ? '99+' : String(unread);
+      badge.classList.toggle('hidden', unread <= 0);
+    }
+
+    function syncAlertNotifications(alerts) {
+      const latestKeys = new Set((alerts || []).map(getAlertKey));
+      if (!S.alertsInitialized) {
+        S.unreadAlertKeys = new Set(latestKeys);
+        S.alertsInitialized = true;
+      } else {
+        latestKeys.forEach(key => {
+          if (!S.alertKeys.has(key)) S.unreadAlertKeys.add(key);
+        });
+        S.unreadAlertKeys.forEach(key => {
+          if (!latestKeys.has(key)) S.unreadAlertKeys.delete(key);
+        });
+      }
+      S.alertKeys = latestKeys;
+      updateNotificationBadge();
+    }
+
+    function markAlertsRead() {
+      S.unreadAlertKeys = new Set();
+      updateNotificationBadge();
+    }
+
+    function openAlertsPanel() {
+      goToPage('dashboard');
+      markAlertsRead();
+      requestAnimationFrame(() => {
+        document.getElementById('alertsCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
     }
 
     // ── Tabs ───────────────────────────────────────────────────────────────────
@@ -2923,6 +3023,7 @@
           const wx = await api('GET', `/api/weather?location=${encodeURIComponent(loc)}`);
           renderWeather(wx, document.getElementById('dashWeather'));
         } catch { document.getElementById('dashWeather').innerHTML = '<div style="font-size:12px;color:var(--fog);margin-bottom:16px">⚠ Weather unavailable</div>'; }
+        syncAlertNotifications(alerts);
         const aEl = document.getElementById('alertsList');
         if (!alerts.length) { aEl.innerHTML = '<div style="color:var(--lime);font-size:13px">✓ All clear — no immediate alerts</div>'; }
         else {
@@ -3004,16 +3105,6 @@
       <td style="font-size:11px;color:var(--fog)">${h.next_harvest_from || '—'} → ${h.next_harvest_to || '—'}</td>
     </tr>`).join('')}</tbody></table>`;
       } catch (e) { toast(e.message, true); }
-    }
-
-    // ── Weather page ───────────────────────────────────────────────────────────
-    async function fetchWeatherPage() {
-      const loc = document.getElementById('wxLocInput').value.trim();
-      if (!loc) return toast('Enter a location', true);
-      const el = document.getElementById('weatherPageResult');
-      el.innerHTML = '<div class="loading"><div class="spinner"></div>Fetching…</div>';
-      try { renderWeather(await api('GET', `/api/weather?location=${encodeURIComponent(loc)}`), el); }
-      catch { el.innerHTML = '<div style="color:#e05c4b;font-size:13px">⚠ Could not fetch weather — try a nearby city name.</div>'; }
     }
 
     // ── Farms ──────────────────────────────────────────────────────────────────
