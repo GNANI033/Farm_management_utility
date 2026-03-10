@@ -20,10 +20,13 @@ from flask import session
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY") or secrets.token_urlsafe(48)
+AUTH_SESSION_TTL_SECONDS = int(os.environ.get("AUTH_SESSION_TTL_SECONDS", "1800"))  # 30 minutes
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_SECURE=os.environ.get("COOKIE_SECURE", "0") == "1",
+    SESSION_REFRESH_EACH_REQUEST=False,
+    PERMANENT_SESSION_LIFETIME=timedelta(seconds=AUTH_SESSION_TTL_SECONDS),
     MAX_CONTENT_LENGTH=262_144,
 )
 
@@ -100,6 +103,24 @@ def _is_login_rate_limited(ip):
     attempts = [t for t in _login_attempts.get(ip, []) if now - t < LOGIN_WINDOW_SECONDS]
     _login_attempts[ip] = attempts
     return len(attempts) >= MAX_LOGIN_ATTEMPTS
+
+
+def _is_session_authenticated():
+    if not session.get("authenticated"):
+        return False
+    issued_at = float(session.get("auth_issued_at", 0) or 0)
+    if not issued_at:
+        return False
+    if datetime.utcnow().timestamp() - issued_at > AUTH_SESSION_TTL_SECONDS:
+        return False
+    return True
+
+
+def _clear_auth_session():
+    session.pop("authenticated", None)
+    session.pop("auth_issued_at", None)
+    session.pop("csrf_token", None)
+
 
 
 def strip_rich(s):
@@ -520,7 +541,8 @@ def check_auth():
             return
         return err("Setup required", 401)
     # Check session
-    if not session.get("authenticated"):
+    if not _is_session_authenticated():
+        _clear_auth_session()
         return err("Auth required", 401)
 
 
@@ -539,7 +561,8 @@ def apply_security_headers(resp):
 
 @app.route("/api/auth/csrf", methods=["GET"])
 def auth_csrf():
-    if not session.get("authenticated"):
+    if not _is_session_authenticated():
+        _clear_auth_session()
         return err("Auth required", 401)
     token = session.get("csrf_token")
     if not token:
@@ -552,7 +575,7 @@ def auth_status():
     data = load_data()
     return ok({
         "setup_required": not bool(data.get("totp_secret")),
-        "authenticated": bool(session.get("authenticated"))
+        "authenticated": _is_session_authenticated()
     })
 
 @app.route("/api/auth/setup", methods=["POST"])
@@ -603,7 +626,9 @@ def auth_login():
     totp = pyotp.TOTP(secret)
     if totp.verify(code):
         _login_attempts.pop(ip, None)
+        session.clear()
         session["authenticated"] = True
+        session["auth_issued_at"] = datetime.utcnow().timestamp()
         session["csrf_token"] = secrets.token_urlsafe(32)
         session.permanent = True
         return ok({"authenticated": True})
@@ -613,8 +638,7 @@ def auth_login():
 
 @app.route("/api/auth/logout", methods=["POST"])
 def auth_logout():
-    session.pop("authenticated", None)
-    session.pop("csrf_token", None)
+    _clear_auth_session()
     return ok({"authenticated": False})
 
 # ─── Farmer ───────────────────────────────────────────────────────────────────
@@ -1379,6 +1403,7 @@ if __name__ == "__main__":
     print("\nCocoTrack Web UI starting...")
     print("   Open http://localhost:3333 in your browser\n")
     app.run(debug=False, host=os.environ.get("HOST", "127.0.0.1"), port=3333)
+
 
 
 
