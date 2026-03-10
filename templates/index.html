@@ -2339,7 +2339,7 @@
 
   <script>
     // ── State ──────────────────────────────────────────────────────────────────
-    const S = { farms: [], harvests: [], catalogue: {} };
+    const S = { farms: [], harvests: [], catalogue: {}, calcLastBody: null, calcLastResults: null };
     let CSRF_TOKEN = '';
 
     // ── API ────────────────────────────────────────────────────────────────────
@@ -3537,12 +3537,20 @@
           ? harvests.find(x => (x.harvest_id || '').toUpperCase() === hid)
           : harvests.find(x => (x.sale_mode || 'yet_to_decide') === 'yet_to_decide');
         if (!h) return toast(hid ? 'Harvest ID not found' : 'No Yet to Decide harvest found', true);
+        const baseExpenses = Number(h.labour_cost || 0) + Number(h.transport_cost || 0) + Number(h.other_expenses || 0);
         document.getElementById('cHarvestId').value = h.harvest_id || '';
         document.getElementById('cNuts').value = h.nuts_harvested || 0;
         document.getElementById('cGoodNuts').value = h.good_nuts || h.nuts_harvested || 0;
-        document.getElementById('cExpenses').value = h.total_expenses || 0;
+        document.getElementById('cExpenses').value = baseExpenses || 0;
+        S.calcLastBody = null;
+        S.calcLastResults = null;
+        document.getElementById('calcResults').style.display = 'none';
         toast(`✅ Loaded ${h.harvest_id}`);
       } catch (e) { toast(e.message, true); }
+    }
+
+    function currentCalcHarvestId() {
+      return document.getElementById('cHarvestId').value.trim().toUpperCase();
     }
 
     async function runCalculator() {
@@ -3560,18 +3568,35 @@
         price_g3: parseFloat(document.getElementById('cG3').value) || 0,
       };
       if (!b.num_nuts) return toast('Enter total nut count', true);
-      try { showCalcResults(await api('POST', '/api/calculator', b), b); }
-      catch (e) { toast(e.message, true); }
+      try {
+        const result = await api('POST', '/api/calculator', b);
+        S.calcLastBody = b;
+        S.calcLastResults = result;
+        showCalcResults(result, b);
+      } catch (e) { toast(e.message, true); }
+    }
+
+    function appliedCalcModeLabel(harvest) {
+      const mode = harvest?.sale_mode || 'yet_to_decide';
+      if (mode === 'sold_per_pcs') return 'pieces';
+      if (mode === 'sold_in_kgs') return 'weight';
+      if (mode === 'copra') return 'copra';
+      return '';
     }
 
     function showCalcResults(r, body) {
-      const best = ['pieces', 'weight', 'copra'];
+      const modes = ['pieces', 'weight', 'copra'];
       const labels = ['① Sell as Pieces', '② Sell by Weight', '③ Sell as Copra'];
+      const harvestId = currentCalcHarvestId();
+      const harvest = S.harvests.find(x => (x.harvest_id || '').toUpperCase() === harvestId);
+      const appliedMode = appliedCalcModeLabel(harvest);
       document.getElementById('calcResults').style.display = 'block';
-      document.getElementById('calcCards').innerHTML = best.map((m, i) => {
+      document.getElementById('calcCards').innerHTML = modes.map((m, i) => {
         const d = r[m]; const isBest = m === r.best;
         const rev = d.revenue || d.total_revenue || 0;
         const exp = d.expenses || d.total_expenses || 0;
+        const canApply = !!harvestId;
+        const applyLabel = appliedMode === m ? 'Applied to Harvest' : 'Choose This Option';
         return `<div class="calc-card${isBest ? ' best' : ''}">
       ${isBest ? '<div class="calc-crown">👑 Best Option</div>' : ''}
       <div class="calc-mode">${labels[i]}</div>
@@ -3582,6 +3607,10 @@
         <div class="cr"><span class="ck">Expenses</span><span class="cv r">${fmt(exp)}</span></div>
         <div class="cr"><span class="ck">Per Nut</span><span class="cv">${fmtF(d.revenue_per_nut || 0)}</span></div>
         ${m === 'weight' ? `<div class="cr"><span class="ck">Total Wt</span><span class="cv">${d.total_weight_kg || 0} kg</span></div>` : ''}
+      </div>
+      <div style="margin-top:14px">
+        <button class="btn ${appliedMode === m ? 'btn-g' : 'btn-p'}" style="width:100%" ${canApply ? `onclick="applyCalculatorChoice('${m}')"` : 'disabled'}>${applyLabel}</button>
+        ${canApply ? '<div style="font-size:11px;color:var(--fog);margin-top:8px">This will update the harvest record, revenue, and profit everywhere.</div>' : '<div style="font-size:11px;color:var(--fog);margin-top:8px">Load a harvest first to save your chosen option.</div>'}
       </div>
     </div>`;
       }).join('');
@@ -3600,9 +3629,25 @@
     </div>`;
     }
 
+    async function applyCalculatorChoice(mode) {
+      const harvestId = currentCalcHarvestId();
+      if (!harvestId) return toast('Load a harvest before selecting a sale option', true);
+      if (!S.calcLastBody) return toast('Run the calculator first', true);
+      try {
+        const saved = await api('POST', `/api/harvests/${harvestId}/apply-sale`, { mode, ...S.calcLastBody });
+        toast(`✅ ${saved.harvest_id} updated to ${HARVEST_SALE_LABELS[saved.sale_mode] || saved.sale_mode}`);
+        await Promise.all([loadHarvests(), loadDashboard()]);
+        document.getElementById('cHarvestId').value = saved.harvest_id || harvestId;
+        document.getElementById('cExpenses').value = Number(saved.labour_cost || 0) + Number(saved.transport_cost || 0) + Number(saved.other_expenses || 0);
+        showCalcResults(S.calcLastResults, S.calcLastBody);
+      } catch (e) { toast(e.message, true); }
+    }
+
     function clearCalculator() {
       ['cNuts', 'cGoodNuts', 'cExpenses', 'cPriceNut', 'cWeight10', 'cPriceTon', 'cCopraWeight10', 'cShell', 'cG1', 'cG2', 'cG3', 'cHarvestId']
         .forEach(id => { const el = document.getElementById(id); if (el) el.value = id === 'cExpenses' ? '0' : ''; });
+      S.calcLastBody = null;
+      S.calcLastResults = null;
       document.getElementById('calcResults').style.display = 'none';
       document.getElementById('perNutWeightHint').textContent = '';
       document.getElementById('copraPerNutHint').textContent = '';

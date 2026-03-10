@@ -458,6 +458,7 @@ def _normalize_harvest_sale(entry):
             "shells_kg": _coerce_float(details.get("shells_kg")),
             "shells_income": _coerce_float(details.get("shells_income")),
             "husk_income": _coerce_float(details.get("husk_income")),
+            "processing_cost": _coerce_float(details.get("processing_cost")),
         }
         entry["selling_price"] = 0.0
     else:
@@ -484,6 +485,13 @@ def _compute_harvest_revenue(entry):
             + _coerce_float(details.get("husk_income")),
             2,
         )
+    return 0.0
+
+
+def _compute_harvest_sale_expenses(entry):
+    mode, details = _normalize_harvest_sale(entry)
+    if mode == "copra":
+        return round(_coerce_float(details.get("processing_cost")), 2)
     return 0.0
 
 
@@ -601,7 +609,7 @@ def _recalculate_harvest(entry, data=None):
         )
 
     revenue = _compute_harvest_revenue(entry)
-    expenses = labour_cost + transport_cost + other_expenses
+    expenses = labour_cost + transport_cost + other_expenses + _compute_harvest_sale_expenses(entry)
     entry.update(
         revenue=round(revenue, 2),
         total_expenses=round(expenses, 2),
@@ -981,6 +989,85 @@ def patch_harvest_price(harvest_id):
             save_data(data)
             return ok(h)
     return err("Harvest not found", 404)
+@app.route("/api/harvests/<harvest_id>/apply-sale", methods=["POST"])
+def apply_harvest_sale(harvest_id):
+    data = load_data()
+    body = request.json or {}
+    mode = (body.get("mode") or "").strip().lower()
+    if mode not in {"pieces", "weight", "copra"}:
+        return err("Invalid sale option")
+
+    for h in data.get("harvests", []):
+        if h.get("harvest_id") != harvest_id:
+            continue
+
+        settings = get_settings(data)
+        num_nuts = max(_coerce_int(body.get("num_nuts", h.get("nuts_harvested", 0))), 0)
+        good_nuts = max(_coerce_int(body.get("good_nuts", h.get("good_nuts", num_nuts))), 0)
+        harvest_expenses = (
+            _coerce_float(h.get("labour_cost"))
+            + _coerce_float(h.get("transport_cost"))
+            + _coerce_float(h.get("other_expenses"))
+        )
+        requested_expenses = _coerce_float(body.get("harvest_expenses"), harvest_expenses)
+        if abs(requested_expenses - harvest_expenses) > 0.009:
+            h["other_expenses"] = round(_coerce_float(h.get("other_expenses")) + (requested_expenses - harvest_expenses), 2)
+            harvest_expenses = requested_expenses
+
+        if mode == "pieces":
+            price_per_nut = _coerce_float(body.get("price_per_nut"))
+            calculate_sell_as_pieces(num_nuts, good_nuts, price_per_nut, harvest_expenses)
+            h["sale_mode"] = "sold_per_pcs"
+            h["sale_details"] = {
+                "actual_nuts_sold": good_nuts,
+                "price_per_nut": price_per_nut,
+            }
+        elif mode == "weight":
+            avg_weight_10 = _coerce_float(body.get("avg_weight_10"), 1.0)
+            price_per_ton = _coerce_float(body.get("price_per_ton"))
+            result = calculate_sell_by_weight(num_nuts, avg_weight_10, price_per_ton, harvest_expenses)
+            h["sale_mode"] = "sold_in_kgs"
+            h["sale_details"] = {
+                "total_tons_sold": _coerce_float(result.get("total_weight_ton")),
+                "rate_per_ton": price_per_ton,
+            }
+        else:
+            avg_dehusked_10 = _coerce_float(body.get("avg_dehusked_10"), 1.0)
+            price_shell = _coerce_float(body.get("price_shell"))
+            price_g1 = _coerce_float(body.get("price_g1"))
+            price_g2 = _coerce_float(body.get("price_g2"))
+            price_g3 = _coerce_float(body.get("price_g3"))
+            result = calculate_sell_as_copra(
+                num_nuts,
+                avg_dehusked_10,
+                price_shell,
+                price_g1,
+                price_g2,
+                price_g3,
+                harvest_expenses,
+                settings,
+            )
+            h["sale_mode"] = "copra"
+            h["sale_details"] = {
+                "copra_grade1_kg": _coerce_float(result.get("g1_kg")),
+                "copra_grade1_income": round(_coerce_float(result.get("g1_kg")) * price_g1, 2),
+                "copra_grade2_kg": _coerce_float(result.get("g2_kg")),
+                "copra_grade2_income": round(_coerce_float(result.get("g2_kg")) * price_g2, 2),
+                "copra_grade3_kg": _coerce_float(result.get("g3_kg")),
+                "copra_grade3_income": round(_coerce_float(result.get("g3_kg")) * price_g3, 2),
+                "shells_kg": _coerce_float(result.get("shell_weight_kg")),
+                "shells_income": _coerce_float(result.get("shell_revenue")),
+                "husk_income": _coerce_float(result.get("husk_revenue")),
+                "processing_cost": _coerce_float(result.get("processing_cost")),
+            }
+
+        _recalculate_harvest(h, data)
+        h["last_edited"] = datetime.now().isoformat()
+        save_data(data)
+        return ok(h)
+
+    return err("Harvest not found", 404)
+
 @app.route("/api/harvests/<harvest_id>", methods=["DELETE"])
 def delete_harvest(harvest_id):
     data = load_data()
