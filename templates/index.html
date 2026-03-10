@@ -2482,19 +2482,27 @@
       const bc = rainClass(wx.rain_7day_mm || 0);
       const rainishCodes = new Set([51, 53, 55, 61, 63, 65, 80, 81, 82, 95, 96, 99]);
       const showeryNow = rainishCodes.has(Number(wx.weather_code || 0));
+      const fc = Array.isArray(wx.forecast_3days) ? wx.forecast_3days : [];
+      const rain3 = fc.slice(0, 3).reduce((s, d) => s + Number((d || {}).rain_mm || 0), 0);
+      const heavyDays3 = fc.slice(0, 3).filter(d => Number((d || {}).rain_mm || 0) >= 10).length;
+      const rainNow = Number(wx.rain_mm || 0);
+      const rainToday = Number(wx.rain_today_mm || 0);
+
       let advisory = wx.advisory || "";
       let badgeClass = bc;
-      if (showeryNow && /good time to dry copra/i.test(advisory)) {
-        advisory = `🌦 ${wx.description || "Showers"} reported now - Use cover/backup if drying copra`;
+      if (rain3 >= 30 || heavyDays3 >= 2 || rainNow >= 2 || rainToday >= 10) {
+        advisory = `🌧 Rain risk high - Do not dry copra now. Move drying indoors or postpone`;
+        badgeClass = "danger";
+      } else if (showeryNow || rain3 > 0 || rainNow > 0 || rainToday > 0) {
+        advisory = `🌦 Slight rain chance/showers - Dry only with quick cover backup`;
         badgeClass = "warning";
       }
-      const fc = Array.isArray(wx.forecast_3days) ? wx.forecast_3days : [];
       const forecastHtml = fc.length ? `<div class="wx-forecast">${fc.map(d => `<div class="wx-day">
         <div class="wx-day-top"><span>${d.day || ""}</span><span class="wx-day-icon">${wxIcon(d.weather_code)}</span></div>
-        <div class="wx-day-date">${d.date || ''}</div>
-        <div class="wx-day-temps">${d.temp_max ?? '—'}° / ${d.temp_min ?? '—'}°</div>
+        <div class="wx-day-date">${d.date || ""}</div>
+        <div class="wx-day-temps">${d.temp_max ?? "—"}° / ${d.temp_min ?? "—"}°</div>
         <div class="wx-day-rain">Rain: ${Number(d.rain_mm || 0).toFixed(1)} mm</div>
-      </div>`).join('')}</div>` : '';
+      </div>`).join("")}</div>` : "";
 
       el.innerHTML = `<div class="weather-card">
     <div class="weather-main">
