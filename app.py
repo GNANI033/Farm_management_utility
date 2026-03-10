@@ -4,7 +4,7 @@ CocoTrack Web UI — Flask wrapper around core.py
 Run: python app.py  →  http://localhost:3333
 """
 from flask import Flask, render_template, request, jsonify
-import sys, os, uuid, re, secrets, json
+import sys, os, uuid, re, secrets, json, subprocess
 sys.path.insert(0, os.path.dirname(__file__))
 
 from core import (
@@ -33,6 +33,9 @@ app.config.update(
 LOGIN_WINDOW_SECONDS = 10 * 60
 MAX_LOGIN_ATTEMPTS = 10
 _login_attempts = {}
+
+COCONUT_PRICE_FILE = os.path.join(os.path.dirname(__file__), "coconut_prices_latest.json")
+COCONUT_PRICE_SCRIPT = os.path.join(os.path.dirname(__file__), "coconut_price_scraper.py")
 
 COCONUT_PRICE_SNAPSHOT = {
     "source": "commodityfact.org",
@@ -103,8 +106,84 @@ def err(msg, code=400):
     return jsonify({"ok": False, "error": msg}), code
 
 
+def _normalize_coconut_price_payload(payload):
+    payload = payload or {}
+    tn = payload.get("tamil_nadu") or {}
+    tj = payload.get("thanjavur") or {}
+    tj_markets = tj.get("markets") or []
+
+    costliest_market = max(tj_markets, key=lambda m: float(m.get("price_per_kg", 0) or 0), default={})
+    lowest_market = min(tj_markets, key=lambda m: float(m.get("price_per_kg", 0) or 0), default={}) if tj_markets else {}
+
+    return {
+        "source": payload.get("source") or COCONUT_PRICE_SNAPSHOT.get("source"),
+        "tamil_nadu": {
+            "updated": tn.get("updated") or COCONUT_PRICE_SNAPSHOT["tamil_nadu"]["updated"],
+            "average_kg": float((tn.get("average") or {}).get("price_per_kg") or COCONUT_PRICE_SNAPSHOT["tamil_nadu"]["average_kg"]),
+            "total_mandis": int(tn.get("total_mandis") or COCONUT_PRICE_SNAPSHOT["tamil_nadu"]["total_mandis"]),
+            "costliest": {
+                "market": (tn.get("costliest") or {}).get("market") or COCONUT_PRICE_SNAPSHOT["tamil_nadu"]["costliest"]["market"],
+                "price_kg": float((tn.get("costliest") or {}).get("price_per_kg") or COCONUT_PRICE_SNAPSHOT["tamil_nadu"]["costliest"]["price_kg"]),
+            },
+            "lowest": {
+                "market": (tn.get("lowest") or {}).get("market") or COCONUT_PRICE_SNAPSHOT["tamil_nadu"]["lowest"]["market"],
+                "price_kg": float((tn.get("lowest") or {}).get("price_per_kg") or COCONUT_PRICE_SNAPSHOT["tamil_nadu"]["lowest"]["price_kg"]),
+            },
+        },
+        "thanjavur": {
+            "data_date": tj.get("data_date") or COCONUT_PRICE_SNAPSHOT["thanjavur"]["data_date"],
+            "average_kg": float(tj.get("average_per_kg") or COCONUT_PRICE_SNAPSHOT["thanjavur"]["average_kg"]),
+            "costliest": {
+                "market": costliest_market.get("market") or COCONUT_PRICE_SNAPSHOT["thanjavur"]["costliest"]["market"],
+                "price_kg": float(costliest_market.get("price_per_kg") or COCONUT_PRICE_SNAPSHOT["thanjavur"]["costliest"]["price_kg"]),
+            },
+            "lowest": {
+                "market": lowest_market.get("market") or COCONUT_PRICE_SNAPSHOT["thanjavur"]["lowest"]["market"],
+                "price_kg": float(lowest_market.get("price_per_kg") or COCONUT_PRICE_SNAPSHOT["thanjavur"]["lowest"]["price_kg"]),
+            },
+            "markets": [
+                {
+                    "market": m.get("market", "—"),
+                    "price_kg": float(m.get("price_per_kg") or 0),
+                }
+                for m in tj_markets
+            ] or json.loads(json.dumps(COCONUT_PRICE_SNAPSHOT["thanjavur"]["markets"])),
+        },
+    }
+
+
 def _get_coconut_price_snapshot():
+    if os.path.exists(COCONUT_PRICE_FILE):
+        try:
+            with open(COCONUT_PRICE_FILE, "r", encoding="utf-8") as f:
+                return _normalize_coconut_price_payload(json.load(f))
+        except Exception:
+            pass
     return json.loads(json.dumps(COCONUT_PRICE_SNAPSHOT))
+
+
+def _refresh_coconut_price_snapshot():
+    base = os.path.splitext(COCONUT_PRICE_FILE)[0]
+    env = os.environ.copy()
+    env["PYTHONIOENCODING"] = "utf-8"
+    proc = subprocess.run(
+        [sys.executable, COCONUT_PRICE_SCRIPT, "--export", "json", "--output", base],
+        cwd=os.path.dirname(__file__),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=180,
+        env=env,
+    )
+    if proc.returncode != 0:
+        msg = (proc.stderr or proc.stdout or "Price refresh failed").strip()
+        raise RuntimeError(msg)
+    if not os.path.exists(COCONUT_PRICE_FILE):
+        raise RuntimeError("Price file was not generated")
+    with open(COCONUT_PRICE_FILE, "r", encoding="utf-8") as f:
+        return _normalize_coconut_price_payload(json.load(f))
+
 
 def _iter_strings(value):
     if isinstance(value, str):
@@ -1592,6 +1671,16 @@ def save_settings_api():
     return ok(get_settings(data))
 
 # ─── Stats / Predictions ──────────────────────────────────────────────────────
+@app.route("/api/coconut-prices/refresh", methods=["POST"])
+def refresh_coconut_prices():
+    try:
+        return ok(_refresh_coconut_price_snapshot())
+    except subprocess.TimeoutExpired:
+        return err("Price refresh timed out", 504)
+    except Exception as e:
+        return err(f"Price refresh failed: {e}", 500)
+
+
 @app.route("/api/stats", methods=["GET"])
 def get_stats():
     data     = load_data()

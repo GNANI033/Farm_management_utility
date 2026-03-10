@@ -1,0 +1,69 @@
+{
+  "scraped_at": "2026-03-10 21:56",
+  "source": "commodityfact.org",
+  "tamil_nadu": {
+    "updated": "6 March 2026 In Tamil-nadu , the average wholesale price for Coconut is currently ₹ 5,555 /quintal .",
+    "total_mandis": "146",
+    "costliest": {
+      "market": "Dharmapuri(Uzhavar Sandhai )",
+      "price_per_kg": 78.0
+    },
+    "lowest": {
+      "market": "RSPuram(Uzhavar Sandhai )",
+      "price_per_kg": 52.0
+    },
+    "average": {
+      "price_per_kg": 55.55
+    }
+  },
+  "thanjavur": {
+    "data_date": "2026-03-06",
+    "average_per_kg": 63.33,
+    "costliest_per_kg": 70.0,
+    "lowest_per_kg": 60.0,
+    "markets": [
+      {
+        "market": "Tirukattupalli(Uzhavar Sandhai )",
+        "price_per_kg": 70.0,
+        "min_per_kg": 70.0,
+        "max_per_kg": 70.0,
+        "date": "2026-03-05"
+      },
+      {
+        "market": "Kumbakonam (Uzhavar Sandhai )",
+        "price_per_kg": 65.0,
+        "min_per_kg": 65.0,
+        "max_per_kg": 65.0,
+        "date": "2026-03-06"
+      },
+      {
+        "market": "Papanasam(Uzhavar Sandhai )",
+        "price_per_kg": 65.0,
+        "min_per_kg": 65.0,
+        "max_per_kg": 65.0,
+        "date": "2026-03-05"
+      },
+      {
+        "market": "Pattukottai(Uzhavar Sandhai )",
+        "price_per_kg": 60.0,
+        "min_per_kg": 60.0,
+        "max_per_kg": 60.0,
+        "date": "2026-03-06"
+      },
+      {
+        "market": "Peravurani(Uzhavar Sandhai)",
+        "price_per_kg": 60.0,
+        "min_per_kg": 60.0,
+        "max_per_kg": 60.0,
+        "date": "2026-03-05"
+      },
+      {
+        "market": "Thanjavur(Uzhavar Sandhai )",
+        "price_per_kg": 60.0,
+        "min_per_kg": 60.0,
+        "max_per_kg": 60.0,
+        "date": "2026-03-05"
+      }
+    ]
+  }
+}

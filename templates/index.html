@@ -472,6 +472,45 @@
       margin-bottom: 10px;
     }
 
+    .price-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .price-card-header .stat-label {
+      margin-bottom: 0;
+    }
+
+    .refresh-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--card-border);
+      background: rgba(212, 168, 75, .12);
+      color: var(--husk);
+      font-size: 12px;
+      cursor: pointer;
+      transition: background var(--transition), transform var(--transition);
+      white-space: nowrap;
+    }
+
+    .refresh-btn:hover {
+      background: rgba(212, 168, 75, .2);
+      transform: translateY(-1px);
+    }
+
+    .refresh-btn:disabled {
+      opacity: .6;
+      cursor: wait;
+      transform: none;
+    }
+
     .stat-sub {
       font-size: 11px;
       color: var(--fog);
@@ -1961,7 +2000,10 @@
               <div id="thanjavurPriceCard" class="price-card-body"></div>
             </div>
             <div class="stat-card amber price-card">
-              <div class="stat-label">Tamil Nadu Coconut Rate</div>
+              <div class="price-card-header">
+                <div class="stat-label">Tamil Nadu Coconut Rate</div>
+                <button type="button" id="refreshCoconutPricesBtn" class="refresh-btn" onclick="refreshCoconutPrices()">↻ Refresh</button>
+              </div>
               <div id="tamilNaduPriceCard" class="price-card-body"></div>
             </div>
           </div>
@@ -2789,6 +2831,27 @@
       }).join('')}</div>`;
     }
     // ── Dashboard ──────────────────────────────────────────────────────────────
+    async function refreshCoconutPrices() {
+      const btn = document.getElementById('refreshCoconutPricesBtn');
+      const original = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '↻ Refreshing...';
+      }
+      try {
+        await api('POST', '/api/coconut-prices/refresh', {});
+        await loadDashboard();
+        toast('✅ Coconut rates refreshed');
+      } catch (e) {
+        toast(e.message, true);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = original || '↻ Refresh';
+        }
+      }
+    }
+
     async function loadDashboard() {
       try {
         const [stats, alerts, harvests, farmer] = await Promise.all([
