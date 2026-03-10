@@ -2284,13 +2284,6 @@
       const needsCsrf = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(upperMethod) && !path.startsWith('/api/auth/');
       if (needsCsrf && CSRF_TOKEN) headers['X-CSRF-Token'] = CSRF_TOKEN;
 
-      if (path === '/api/auth/setup') {
-        const setupToken = sessionStorage.getItem('setupToken') || prompt('Enter setup token to initialize TOTP setup');
-        if (!setupToken) throw new Error('Setup token required');
-        sessionStorage.setItem('setupToken', setupToken);
-        headers['X-Setup-Token'] = setupToken;
-      }
-
       const opts = { method, headers };
       if (body) opts.body = JSON.stringify(body);
       const res = await fetch(path, opts);
@@ -2414,7 +2407,6 @@
           img.alt = 'QR Code';
           qc.appendChild(img);
         }).catch((e) => {
-          if ((e.message || '').toLowerCase().includes('invalid setup token')) sessionStorage.removeItem('setupToken');
           toast(e.message || 'Setup is disabled', true);
         });
       }
@@ -3621,6 +3613,7 @@
 </body>
 
 </html>
+
 
 
 
