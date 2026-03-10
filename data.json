@@ -131,70 +131,9 @@
       "added_on": "2026-03-08T20:09:30.832311"
     }
   ],
-  "harvests": [
-    {
-      "harvest_id": "HRV-2026-001",
-      "farm_id": "FARM001",
-      "farm_name": "Veetuvasal",
-      "num_trees": 95,
-      "harvest_date": "2026-03-09",
-      "nuts_harvested": 1000,
-      "defective_nuts": 0,
-      "selling_price": 20.0,
-      "labour_cost": 1000.0,
-      "transport_cost": 500.0,
-      "other_expenses": 0.0,
-      "notes": "(Bulk Entry)",
-      "logged_at": "2026-03-09T14:37:56.804572",
-      "last_edited": "",
-      "good_nuts": 1000,
-      "revenue": 20000.0,
-      "total_expenses": 1500.0,
-      "profit": 18500.0,
-      "nuts_per_tree": 10.53,
-      "season": "summer",
-      "next_harvest_from": "2026-04-13",
-      "next_harvest_to": "2026-04-23"
-    },
-    {
-      "harvest_id": "HRV-2026-002",
-      "farm_id": "FARM002",
-      "farm_name": "Bore kollai-GR",
-      "num_trees": 144,
-      "harvest_date": "2026-03-10",
-      "nuts_harvested": 1000,
-      "defective_nuts": 0,
-      "selling_price": 20.0,
-      "labour_cost": 1000.0,
-      "transport_cost": 0.0,
-      "other_expenses": 0.0,
-      "notes": "(Bulk Entry)",
-      "logged_at": "2026-03-09T15:12:57.936012",
-      "last_edited": "",
-      "good_nuts": 1000,
-      "revenue": 20000.0,
-      "total_expenses": 1000.0,
-      "profit": 19000.0,
-      "nuts_per_tree": 6.94,
-      "season": "summer",
-      "next_harvest_from": "2026-04-14",
-      "next_harvest_to": "2026-04-24"
-    }
-  ],
+  "harvests": [],
   "fertilizers": [],
-  "expenses": [
-    {
-      "expense_id": "EXP-F9E51BB0",
-      "farm_id": "",
-      "farm_name": "",
-      "date": "2026-02-09",
-      "category": "general",
-      "description": "",
-      "amount": 7000.0,
-      "notes": "",
-      "logged_at": "2026-03-09T15:11:30.171987"
-    }
-  ],
+  "expenses": [],
   "settings": {
     "copra_dehusking_charge_per_nut": 0.8,
     "copra_splitting_charge_per_nut": 0.5,

@@ -1873,7 +1873,7 @@
             <div class="card">
               <div class="card-title">🥥 Log Bulk Harvest</div>
               <p style="font-size:12px;color:var(--fog);margin-bottom:14px">Enter nut counts for all harvested farms.
-                Proportional expenses will be calculated automatically.</p>
+                Expenses are saved once for the whole harvest, while each farm keeps its own harvested nut count.</p>
 
               <div id="bulkHarvestContainer" style="margin-bottom:20px; overflow-x:auto;">
                 <table class="data-table">
@@ -2172,13 +2172,23 @@
       <input type="hidden" id="ehId">
       <div class="form-grid">
         <div class="fg"><label>Harvest Date *</label><input id="ehDate" type="date"></div>
-        <div class="fg"><label>Total Nuts Harvested *</label><input id="ehNuts" type="number"></div>
-        <div class="fg"><label>Defective / Dropped Nuts</label><input id="ehDefective" type="number"></div>
         <div class="fg"><label>Selling Price / Nut (₹) *</label><input id="ehPrice" type="number" step="0.5"></div>
         <div class="fg"><label>Labour Cost (₹)</label><input id="ehLabour" type="number"></div>
         <div class="fg"><label>Transport Cost (₹)</label><input id="ehTransport" type="number"></div>
         <div class="fg"><label>Other Expenses (₹)</label><input id="ehOther" type="number"></div>
         <div class="fg s2"><label>Notes</label><textarea id="ehNotes"></textarea></div>
+      </div>
+      <div class="sdiv">
+        <hr><span>Farm-wise Harvest Counts</span>
+        <hr>
+      </div>
+      <div style="overflow-x:auto;margin-bottom:16px">
+        <table class="data-table">
+          <thead>
+            <tr><th>Farm</th><th>Total Nuts *</th><th>Defective / Dropped</th></tr>
+          </thead>
+          <tbody id="editHarvestFarmList"></tbody>
+        </table>
       </div>
       <div class="btn-row">
         <button type="button" id="btnDeleteHarvest" class="btn btn-r" onclick="deleteHarvest()">🗑 Delete
@@ -2584,11 +2594,11 @@
         }
         const hEl = document.getElementById('recentHarvests');
         if (!harvests.length) { hEl.innerHTML = '<div style="color:var(--fog);font-size:13px">No harvests logged yet.</div>'; return; }
-        hEl.innerHTML = `<table class="data-table"><thead><tr><th>ID</th><th>Date</th><th>Farm</th><th>Nuts</th><th>Revenue</th><th>Profit</th><th>Next Window</th></tr></thead><tbody>
+        hEl.innerHTML = `<table class="data-table"><thead><tr><th>ID</th><th>Date</th><th>Farms</th><th>Total Nuts</th><th>Revenue</th><th>Profit</th><th>Next Window</th></tr></thead><tbody>
     ${harvests.slice(0, 8).map(h => `<tr>
       <td><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--husk)">${h.harvest_id || '—'}</span></td>
-      <td>${h.harvest_date}</td><td>${h.farm_name}</td>
-      <td>${Number(h.nuts_harvested).toLocaleString()}</td>
+      <td>${h.harvest_date}</td><td><div>${harvestFarmSummary(h)}</div><div style="font-size:11px;color:var(--fog);margin-top:4px">${harvestFarmBreakdown(h)}</div></td>
+      <td>${Number(h.nuts_harvested || 0).toLocaleString()}</td>
       <td style="color:var(--lime)">${fmt(h.revenue)}</td>
       <td style="color:${h.profit >= 0 ? 'var(--lime)' : '#e05c4b'}">${fmt(h.profit)}</td>
       <td style="font-size:11px;color:var(--fog)">${h.next_harvest_from || '—'} → ${h.next_harvest_to || '—'}</td>
@@ -2732,6 +2742,46 @@
     }
 
     // ── Harvests ───────────────────────────────────────────────────────────────
+    function harvestFarmRows(h) {
+      if (Array.isArray(h?.farms) && h.farms.length) return h.farms;
+      if (h?.farm_id) {
+        return [{
+          farm_id: h.farm_id,
+          farm_name: h.farm_name || '',
+          nuts_harvested: h.nuts_harvested || 0,
+          defective_nuts: h.defective_nuts || 0,
+          num_trees: h.num_trees || 0
+        }];
+      }
+      return [];
+    }
+
+    function harvestFarmSummary(h) {
+      const farms = harvestFarmRows(h);
+      if (!farms.length) return '—';
+      if (farms.length === 1) return farms[0].farm_name || 'Unknown Farm';
+      return `${farms.length} farms`;
+    }
+
+    function harvestFarmBreakdown(h) {
+      const farms = harvestFarmRows(h);
+      if (!farms.length) return '<span style="color:var(--fog)">—</span>';
+      return farms.map(f => `${f.farm_name || 'Unknown Farm'}: ${Number(f.nuts_harvested || 0).toLocaleString()}`).join('<br>');
+    }
+
+    function renderEditHarvestFarms(h) {
+      const tbody = document.getElementById('editHarvestFarmList');
+      if (!tbody) return;
+      const farms = harvestFarmRows(h);
+      tbody.innerHTML = farms.map(f => `
+        <tr>
+          <td style="font-weight:500">${f.farm_name || 'Unknown Farm'}</td>
+          <td><input type="number" class="edit-harvest-nuts" data-farm-id="${f.farm_id || ''}" data-farm-name="${(f.farm_name || '').replace(/"/g, '&quot;')}" data-num-trees="${Number(f.num_trees || 0)}" value="${Number(f.nuts_harvested || 0)}" style="width:100%"></td>
+          <td><input type="number" class="edit-harvest-defective" data-farm-id="${f.farm_id || ''}" value="${Number(f.defective_nuts || 0)}" style="width:100%"></td>
+        </tr>
+      `).join('');
+    }
+
     async function loadHarvests() {
       try {
         const [farms, harvests] = await Promise.all([api('GET', '/api/farms'), api('GET', '/api/harvests')]);
@@ -2742,12 +2792,12 @@
         if (!harvests.length) { el.innerHTML = '<div style="color:var(--fog);font-size:13px">No harvests logged yet. Click "+ Log Harvest".</div>'; return; }
         const seasonBadge = s => s === 'summer' ? 'by' : s === 'winter' || s === 'monsoon' ? 'bb' : 'bg';
         el.innerHTML = `<table class="data-table"><thead><tr>
-      <th>ID</th><th>Date</th><th>Farm</th><th>Nuts</th><th>₹/Nut</th><th>Revenue</th><th>Expenses</th><th>Profit</th><th>Season</th><th>Next Window</th><th></th>
+      <th>ID</th><th>Date</th><th>Farms</th><th>Total Nuts</th><th>₹/Nut</th><th>Revenue</th><th>Expenses</th><th>Profit</th><th>Season</th><th>Next Window</th><th></th>
     </tr></thead><tbody>
     ${harvests.map(h => `<tr>
       <td><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--husk)">${h.harvest_id || '—'}${h.last_edited ? '<span style="color:var(--fog)" title="Edited"> ✏</span>' : ''}</span></td>
-      <td>${h.harvest_date}</td><td>${h.farm_name}</td>
-      <td>${Number(h.nuts_harvested).toLocaleString()}</td>
+      <td>${h.harvest_date}</td><td><div>${harvestFarmSummary(h)}</div><div style="font-size:11px;color:var(--fog);margin-top:4px">${harvestFarmBreakdown(h)}</div></td>
+      <td>${Number(h.nuts_harvested || 0).toLocaleString()}</td>
       <td style="font-family:'DM Mono',monospace;font-size:12px">₹${parseFloat(h.selling_price || 0).toFixed(2)}</td>
       <td style="color:var(--lime)">${fmt(h.revenue)}</td>
       <td style="color:#e05c4b">${fmt(h.total_expenses)}</td>
@@ -2821,30 +2871,44 @@
       if (!h) return;
       document.getElementById('ehId').value = hid;
       document.getElementById('ehDate').value = h.harvest_date || '';
-      document.getElementById('ehNuts').value = h.nuts_harvested || 0;
-      document.getElementById('ehDefective').value = h.defective_nuts || 0;
       document.getElementById('ehPrice').value = h.selling_price || 0;
       document.getElementById('ehLabour').value = h.labour_cost || 0;
       document.getElementById('ehTransport').value = h.transport_cost || 0;
       document.getElementById('ehOther').value = h.other_expenses || 0;
       document.getElementById('ehNotes').value = h.notes || '';
+      renderEditHarvestFarms(h);
       openModal('modalHarvest');
     }
 
     async function saveEditHarvest() {
       const hid = document.getElementById('ehId').value;
+      const farms = [];
+      const nutInputs = document.querySelectorAll('.edit-harvest-nuts');
+      const defectiveInputs = document.querySelectorAll('.edit-harvest-defective');
+      nutInputs.forEach((input, i) => {
+        const nuts = parseInt(input.value) || 0;
+        const defective = parseInt(defectiveInputs[i]?.value) || 0;
+        if (nuts > 0) {
+          farms.push({
+            farm_id: input.getAttribute('data-farm-id'),
+            farm_name: input.getAttribute('data-farm-name') || '',
+            num_trees: parseInt(input.getAttribute('data-num-trees')) || 0,
+            nuts_harvested: nuts,
+            defective_nuts: defective
+          });
+        }
+      });
       const b = {
         harvest_date: document.getElementById('ehDate').value,
-        nuts_harvested: parseInt(document.getElementById('ehNuts').value) || 0,
-        defective_nuts: parseInt(document.getElementById('ehDefective').value) || 0,
         selling_price: parseFloat(document.getElementById('ehPrice').value) || 0,
         labour_cost: parseFloat(document.getElementById('ehLabour').value) || 0,
         transport_cost: parseFloat(document.getElementById('ehTransport').value) || 0,
         other_expenses: parseFloat(document.getElementById('ehOther').value) || 0,
         notes: document.getElementById('ehNotes').value,
+        farms
       };
-      if (!b.harvest_date || !b.nuts_harvested || !b.selling_price)
-        return toast('Date, nuts count and selling price are required', true);
+      if (!b.harvest_date || !b.selling_price || !b.farms.length)
+        return toast('Date, selling price and at least one farm entry are required', true);
       try {
         console.log('Saving harvest:', hid, b);
         await api('PUT', `/api/harvests/${hid}`, b);
@@ -3395,7 +3459,7 @@
         <div class="pred-stat"><span class="pred-key">Harvests</span><span class="pred-val">${p.harvests_count}</span></div>
         <div class="pred-stat"><span class="pred-key">Avg Nuts</span><span class="pred-val">${p.avg_nuts.toLocaleString()}</span></div>
         <div class="pred-stat"><span class="pred-key">Avg Nuts/Tree</span><span class="pred-val">${p.avg_per_tree}</span></div>
-        <div class="pred-stat"><span class="pred-key">Avg Profit</span><span class="pred-val" style="color:var(--lime)">${fmt(p.avg_profit)}</span></div>
+        <div class="pred-stat"><span class="pred-key">Avg Harvest Value</span><span class="pred-val" style="color:var(--lime)">${fmt(p.avg_profit)}</span></div>
         <div class="pred-stat"><span class="pred-key">Trend</span><span class="pred-val ${tc}">${te} ${p.trend.charAt(0).toUpperCase() + p.trend.slice(1)}</span></div>
         <div class="pred-stat"><span class="pred-key">Next Range</span><span class="pred-val">${p.next_nuts_lo.toLocaleString()} – ${p.next_nuts_hi.toLocaleString()}</span></div>
         <div class="pred-stat"><span class="pred-key">Accuracy</span><span class="pred-val ${p.accuracy === 'moderate' ? 'ti' : 'td'}">${p.accuracy === 'moderate' ? '✅ Moderate' : '⚠ Low'}</span></div>

@@ -330,13 +330,42 @@ def _build_harvest_projection(harvests):
     }
 
 
+def _iter_harvest_farm_entries(harvests):
+    for h in harvests:
+        farms = h.get("farms") or []
+        if farms:
+            for farm in farms:
+                merged = dict(farm)
+                merged["harvest_id"] = h.get("harvest_id", "")
+                merged["harvest_date"] = h.get("harvest_date", "")
+                merged["selling_price"] = h.get("selling_price", 0)
+                yield merged
+            continue
+
+        fid = h.get("farm_id")
+        if not fid:
+            continue
+        yield {
+            "harvest_id": h.get("harvest_id", ""),
+            "harvest_date": h.get("harvest_date", ""),
+            "selling_price": h.get("selling_price", 0),
+            "farm_id": fid,
+            "farm_name": h.get("farm_name", ""),
+            "num_trees": h.get("num_trees", 0),
+            "nuts_harvested": h.get("nuts_harvested", 0),
+            "defective_nuts": h.get("defective_nuts", 0),
+            "good_nuts": h.get("good_nuts", 0),
+            "nuts_per_tree": h.get("nuts_per_tree", 0),
+        }
+
+
 def _build_farm_performance(harvests, farms):
     farm_map = {f.get("id"): f for f in farms}
     farm_totals = {}
     current_year = datetime.now().year
     farm_totals_year = {}
 
-    for h in harvests:
+    for h in _iter_harvest_farm_entries(harvests):
         fid = h.get("farm_id")
         if not fid:
             continue
@@ -383,6 +412,79 @@ def _build_farm_performance(harvests, farms):
         "average_nuts_per_tree_year": round(total_nuts_year / total_trees_year, 2) if total_trees_year > 0 else 0.0,
         "year": current_year,
     }
+
+
+def _recalculate_harvest(entry, data=None):
+    farms = entry.get("farms") or []
+    selling_price = float(entry.get("selling_price", 0) or 0)
+    labour_cost = float(entry.get("labour_cost", 0) or 0)
+    transport_cost = float(entry.get("transport_cost", 0) or 0)
+    other_expenses = float(entry.get("other_expenses", 0) or 0)
+
+    if farms:
+        total_nuts = 0
+        total_defective = 0
+        total_good = 0
+        total_trees = 0
+        farm_names = []
+        for farm in farms:
+            nuts = int(farm.get("nuts_harvested", 0) or 0)
+            defective = int(farm.get("defective_nuts", 0) or 0)
+            good = max(nuts - defective, 0)
+            trees = int(farm.get("num_trees", 0) or 0)
+            farm["nuts_harvested"] = nuts
+            farm["defective_nuts"] = defective
+            farm["good_nuts"] = good
+            farm["nuts_per_tree"] = round(nuts / max(trees, 1), 2)
+            total_nuts += nuts
+            total_defective += defective
+            total_good += good
+            total_trees += trees
+            if farm.get("farm_name"):
+                farm_names.append(farm["farm_name"])
+
+        revenue = total_good * selling_price
+        expenses = labour_cost + transport_cost + other_expenses
+        entry.update(
+            nuts_harvested=total_nuts,
+            defective_nuts=total_defective,
+            good_nuts=total_good,
+            revenue=round(revenue, 2),
+            total_expenses=round(expenses, 2),
+            profit=round(revenue - expenses, 2),
+            nuts_per_tree=round(total_nuts / max(total_trees, 1), 2),
+            farm_count=len(farms),
+            farm_names=", ".join(farm_names),
+        )
+    else:
+        num_trees = int(entry.get("num_trees", 0) or 0)
+        good = int(entry["nuts_harvested"]) - int(entry["defective_nuts"])
+        revenue = good * selling_price
+        expenses = labour_cost + transport_cost + other_expenses
+        entry.update(
+            good_nuts=good,
+            revenue=round(revenue, 2),
+            total_expenses=round(expenses, 2),
+            profit=round(revenue - expenses, 2),
+            nuts_per_tree=round(int(entry["nuts_harvested"]) / max(num_trees, 1), 2),
+            farm_count=1 if entry.get("farm_id") else 0,
+            farm_names=entry.get("farm_name", ""),
+        )
+
+    try:
+        hdate = datetime.strptime(entry["harvest_date"], "%Y-%m-%d")
+        season = get_current_season(hdate.month)
+        lo, hi = _get_harvest_interval_from_settings(data, season)
+        entry.update(
+            season=season,
+            next_harvest_from=(hdate + timedelta(days=lo)).strftime("%Y-%m-%d"),
+            next_harvest_to=(hdate + timedelta(days=hi)).strftime("%Y-%m-%d"),
+        )
+    except:
+        entry.setdefault("season", "unknown")
+        entry.setdefault("next_harvest_from", "")
+        entry.setdefault("next_harvest_to", "")
+    return entry
 
 # ─── Pages ────────────────────────────────────────────────────────────────────
 @app.route("/")
@@ -579,7 +681,20 @@ def delete_farm(farm_id):
         return err("Farm not found", 404)
         
     # Cascading deletes
-    data["harvests"] = [h for h in data.get("harvests", []) if h.get("farm_id") != farm_id]
+    updated_harvests = []
+    for h in data.get("harvests", []):
+        farms = h.get("farms") or []
+        if farms:
+            kept_farms = [fh for fh in farms if fh.get("farm_id") != farm_id]
+            if not kept_farms:
+                continue
+            if len(kept_farms) != len(farms):
+                h["farms"] = kept_farms
+                _recalculate_harvest(h, data)
+        elif h.get("farm_id") == farm_id:
+            continue
+        updated_harvests.append(h)
+    data["harvests"] = updated_harvests
     data["fertilizer_jobs"] = [j for j in data.get("fertilizer_jobs", []) if j.get("farm_id") != farm_id]
     data["fertilizer_compositions"] = [c for c in data.get("fertilizer_compositions", []) if c.get("farm_id") != farm_id]
     data["fertilizers"] = [f for f in data.get("fertilizers", []) if f.get("farm_id") != farm_id]
@@ -594,28 +709,11 @@ def get_harvests():
     farm_id  = request.args.get("farm_id")
     harvests = data.get("harvests", [])
     if farm_id:
-        harvests = [h for h in harvests if h.get("farm_id") == farm_id]
+        harvests = [
+            h for h in harvests
+            if h.get("farm_id") == farm_id or any(f.get("farm_id") == farm_id for f in (h.get("farms") or []))
+        ]
     return ok(sorted(harvests, key=lambda x: x.get("harvest_date",""), reverse=True))
-
-def _calc_harvest(entry, num_trees, data=None):
-    good  = int(entry["nuts_harvested"]) - int(entry["defective_nuts"])
-    rev   = good * float(entry["selling_price"])
-    exp   = float(entry["labour_cost"]) + float(entry["transport_cost"]) + float(entry["other_expenses"])
-    entry.update(good_nuts=good, revenue=round(rev,2),
-                 total_expenses=round(exp,2), profit=round(rev-exp,2),
-                 nuts_per_tree=round(int(entry["nuts_harvested"])/max(num_trees,1),2))
-    try:
-        hdate  = datetime.strptime(entry["harvest_date"], "%Y-%m-%d")
-        season = get_current_season(hdate.month)
-        lo, hi = _get_harvest_interval_from_settings(data, season)
-        entry.update(season=season,
-                     next_harvest_from=(hdate+timedelta(days=lo)).strftime("%Y-%m-%d"),
-                     next_harvest_to  =(hdate+timedelta(days=hi)).strftime("%Y-%m-%d"))
-    except:
-        entry.setdefault("season","unknown")
-        entry.setdefault("next_harvest_from","")
-        entry.setdefault("next_harvest_to","")
-    return entry
 
 @app.route("/api/harvests", methods=["POST"])
 def add_harvest():
@@ -625,22 +723,24 @@ def add_harvest():
     if not farm:
         return err("Farm not found")
     entry = {
-        "harvest_id":    generate_harvest_id(data),
-        "farm_id":       farm["id"],
-        "farm_name":     farm["name"],
-        "num_trees":     farm["num_trees"],
-        "harvest_date":  body.get("harvest_date", today_str()),
-        "nuts_harvested":int(body.get("nuts_harvested", 0)),
-        "defective_nuts":int(body.get("defective_nuts", 0)),
+        "harvest_id": generate_harvest_id(data),
+        "harvest_date": body.get("harvest_date", today_str()),
+        "farms": [{
+            "farm_id": farm["id"],
+            "farm_name": farm["name"],
+            "num_trees": farm["num_trees"],
+            "nuts_harvested": int(body.get("nuts_harvested", 0)),
+            "defective_nuts": int(body.get("defective_nuts", 0)),
+        }],
         "selling_price": float(body.get("selling_price", 0)),
-        "labour_cost":   float(body.get("labour_cost", 0)),
-        "transport_cost":float(body.get("transport_cost", 0)),
-        "other_expenses":float(body.get("other_expenses", 0)),
-        "notes":         body.get("notes", ""),
-        "logged_at":     datetime.now().isoformat(),
-        "last_edited":   "",
+        "labour_cost": float(body.get("labour_cost", 0)),
+        "transport_cost": float(body.get("transport_cost", 0)),
+        "other_expenses": float(body.get("other_expenses", 0)),
+        "notes": body.get("notes", ""),
+        "logged_at": datetime.now().isoformat(),
+        "last_edited": "",
     }
-    _calc_harvest(entry, farm["num_trees"], data)
+    _recalculate_harvest(entry, data)
     data["harvests"].append(entry)
     save_data(data)
     return ok(entry)
@@ -650,70 +750,81 @@ def bulk_harvest():
     data = load_data()
     body = request.json
     
-    # Global fields
-    harvest_date   = body.get("harvest_date", today_str())
-    selling_price  = float(body.get("selling_price", 0))
-    labour_cost    = float(body.get("labour_cost", 0))
+    harvest_date = body.get("harvest_date", today_str())
+    selling_price = float(body.get("selling_price", 0))
+    labour_cost = float(body.get("labour_cost", 0))
     transport_cost = float(body.get("transport_cost", 0))
     other_expenses = float(body.get("other_expenses", 0))
-    notes          = body.get("notes", "")
-    
-    # Farm-specific data: [{"farm_id": "...", "nuts_harvested": 100, "defective_nuts": 5}, ...]
+    notes = body.get("notes", "")
     farm_entries = body.get("farms", [])
-    
-    # Filter out farms with 0 harvested nuts
     active_entries = [e for e in farm_entries if int(e.get("nuts_harvested", 0)) > 0]
     if not active_entries:
         return err("No nuts harvested in any farm")
-        
-    total_nuts = sum(int(e["nuts_harvested"]) for e in active_entries)
-    
-    results = []
+
+    farm_details = []
     for e in active_entries:
         farm = next((f for f in data["farms"] if f["id"] == e["farm_id"]), None)
         if not farm:
             continue
-            
-        nuts = int(e["nuts_harvested"])
-        share = nuts / total_nuts
-        
-        entry = {
-            "harvest_id":    generate_harvest_id(data),
-            "farm_id":       farm["id"],
-            "farm_name":     farm["name"],
-            "num_trees":     farm.get("num_trees", 1),
-            "harvest_date":  harvest_date,
-            "nuts_harvested":nuts,
-            "defective_nuts":int(e.get("defective_nuts", 0)),
-            "selling_price": selling_price,
-            "labour_cost":   round(labour_cost * share, 2),
-            "transport_cost":round(transport_cost * share, 2),
-            "other_expenses":round(other_expenses * share, 2),
-            "notes":         f"{notes} (Bulk Entry)".strip(),
-            "logged_at":     datetime.now().isoformat(),
-            "last_edited":   "",
-        }
-        _calc_harvest(entry, int(farm.get("num_trees", 1)), data)
-        data["harvests"].append(entry)
-        results.append(entry)
-        
+        farm_details.append({
+            "farm_id": farm["id"],
+            "farm_name": farm["name"],
+            "num_trees": int(farm.get("num_trees", 1) or 1),
+            "nuts_harvested": int(e.get("nuts_harvested", 0) or 0),
+            "defective_nuts": int(e.get("defective_nuts", 0) or 0),
+        })
+
+    if not farm_details:
+        return err("No valid farms found for this harvest")
+
+    entry = {
+        "harvest_id": generate_harvest_id(data),
+        "harvest_date": harvest_date,
+        "farms": farm_details,
+        "selling_price": selling_price,
+        "labour_cost": labour_cost,
+        "transport_cost": transport_cost,
+        "other_expenses": other_expenses,
+        "notes": f"{notes} (Bulk Entry)".strip(),
+        "logged_at": datetime.now().isoformat(),
+        "last_edited": "",
+    }
+    _recalculate_harvest(entry, data)
+    data["harvests"].append(entry)
     save_data(data)
-    return ok(results)
+    return ok(entry)
 
 @app.route("/api/harvests/<harvest_id>", methods=["PUT"])
 def update_harvest(harvest_id):
     """Full edit of any harvest field."""
     data = load_data()
     body = request.json
+    farm_map = {f.get("id"): f for f in data.get("farms", [])}
     for h in data["harvests"]:
         if h.get("harvest_id") == harvest_id:
-            farm = next((f for f in data["farms"] if f["id"]==h["farm_id"]),
-                        {"num_trees": h.get("num_trees",1)})
-            for fld in ["harvest_date","nuts_harvested","defective_nuts",
-                        "selling_price","labour_cost","transport_cost","other_expenses","notes"]:
+            for fld in ["harvest_date", "selling_price", "labour_cost", "transport_cost", "other_expenses", "notes"]:
                 if fld in body:
                     h[fld] = body[fld]
-            _calc_harvest(h, int(farm.get("num_trees", h.get("num_trees",1))), data)
+            if "farms" in body and isinstance(body["farms"], list):
+                updated_farms = []
+                for farm_entry in body["farms"]:
+                    fid = farm_entry.get("farm_id")
+                    farm = farm_map.get(fid, {})
+                    updated_farms.append({
+                        "farm_id": fid,
+                        "farm_name": farm_entry.get("farm_name") or farm.get("name", ""),
+                        "num_trees": int(farm_entry.get("num_trees", farm.get("num_trees", 0)) or 0),
+                        "nuts_harvested": int(farm_entry.get("nuts_harvested", 0) or 0),
+                        "defective_nuts": int(farm_entry.get("defective_nuts", 0) or 0),
+                    })
+                h["farms"] = updated_farms
+                for legacy_key in ["farm_id", "farm_name", "num_trees"]:
+                    h.pop(legacy_key, None)
+            elif not h.get("farms"):
+                for fld in ["nuts_harvested", "defective_nuts"]:
+                    if fld in body:
+                        h[fld] = body[fld]
+            _recalculate_harvest(h, data)
             h["last_edited"] = datetime.now().isoformat()
             save_data(data)
             return ok(h)
@@ -725,12 +836,9 @@ def patch_harvest_price(harvest_id):
     data = load_data()
     for h in data["harvests"]:
         if h.get("harvest_id") == harvest_id:
-            p = float(request.json.get("selling_price", h["selling_price"]))
-            g = h.get("good_nuts", int(h["nuts_harvested"])-int(h.get("defective_nuts",0)))
-            h["selling_price"] = p
-            h["revenue"]       = round(g * p, 2)
-            h["profit"]        = round(h["revenue"] - h["total_expenses"], 2)
-            h["last_edited"]   = datetime.now().isoformat()
+            h["selling_price"] = float(request.json.get("selling_price", h["selling_price"]))
+            _recalculate_harvest(h, data)
+            h["last_edited"] = datetime.now().isoformat()
             save_data(data)
             return ok(h)
     return err("Harvest not found", 404)
@@ -1127,7 +1235,7 @@ def get_alerts():
 
     # Harvest window alerts
     harv_last = {}
-    for h in data.get("harvests", []):
+    for h in _iter_harvest_farm_entries(data.get("harvests", [])):
         fid = h["farm_id"]
         if fid not in harv_last or h.get("harvest_date","") > harv_last[fid].get("harvest_date",""):
             harv_last[fid] = h
@@ -1218,12 +1326,13 @@ def get_stats():
     season   = get_current_season()
     lo, hi   = _get_harvest_interval_from_settings(data, season)
     fs = {}
-    for h in harvests:
+    for h in _iter_harvest_farm_entries(harvests):
         fid = h["farm_id"]
+        revenue = float(h.get("good_nuts", 0) or 0) * float(h.get("selling_price", 0) or 0)
         fs.setdefault(fid,{"nuts":[],"profit":[],"revenue":[],"per_tree":[]})
         fs[fid]["nuts"].append(h["nuts_harvested"])
-        fs[fid]["profit"].append(h["profit"])
-        fs[fid]["revenue"].append(h["revenue"])
+        fs[fid]["profit"].append(revenue)
+        fs[fid]["revenue"].append(revenue)
         fs[fid]["per_tree"].append(h.get("nuts_per_tree",0))
 
     preds = []
