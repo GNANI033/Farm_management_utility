@@ -34,6 +34,50 @@ LOGIN_WINDOW_SECONDS = 10 * 60
 MAX_LOGIN_ATTEMPTS = 10
 _login_attempts = {}
 
+COCONUT_PRICE_SNAPSHOT = {
+    "source": "commodityfact.org",
+    "tamil_nadu": {
+        "updated": "6 March 2026",
+        "average_kg": 55.5,
+        "average_quintal": 5555,
+        "summary": "In Tamil Nadu, the average wholesale price for Coconut is currently Rs.5,555/quintal.",
+        "total_mandis": 146,
+        "costliest": {
+            "market": "Dharmapuri (Uzhavar Sandhai)",
+            "price_kg": 78.0,
+            "price_quintal": 7800,
+        },
+        "lowest": {
+            "market": "RSPuram (Uzhavar Sandhai)",
+            "price_kg": 52.0,
+            "price_quintal": 5200,
+        },
+    },
+    "thanjavur": {
+        "data_date": "6 March 2026",
+        "average_kg": 63.33,
+        "average_quintal": 6333,
+        "costliest": {
+            "market": "Tirukattupalli",
+            "price_kg": 70.0,
+            "price_quintal": 7000,
+        },
+        "lowest": {
+            "market": "Pattukottai",
+            "price_kg": 60.0,
+            "price_quintal": 6000,
+        },
+        "markets": [
+            {"market": "Tirukattupalli", "price_kg": 70.0, "price_quintal": 7000},
+            {"market": "Kumbakonam", "price_kg": 65.0, "price_quintal": 6500},
+            {"market": "Papanasam", "price_kg": 65.0, "price_quintal": 6500},
+            {"market": "Pattukottai", "price_kg": 60.0, "price_quintal": 6000},
+            {"market": "Thanjavur", "price_kg": 60.0, "price_quintal": 6000},
+            {"market": "Peravurani", "price_kg": 60.0, "price_quintal": 6000},
+        ],
+    },
+}
+
 # ─── Fertilizer master catalogue ─────────────────────────────────────────────
 # key → label, how often to reapply, buying unit, default price
 FERT_CATALOGUE = {
@@ -57,6 +101,10 @@ def ok(payload=None):
 
 def err(msg, code=400):
     return jsonify({"ok": False, "error": msg}), code
+
+
+def _get_coconut_price_snapshot():
+    return json.loads(json.dumps(COCONUT_PRICE_SNAPSHOT))
 
 def _iter_strings(value):
     if isinstance(value, str):
@@ -635,6 +683,7 @@ def _recalculate_harvest(entry, data=None):
 @app.route("/")
 def index():
     return render_template("index.html")
+
 
 # ─── Auth ────────────────────────────────────────────────────────────────────
 @app.before_request
@@ -1599,20 +1648,11 @@ def get_stats():
                "harvest_projection":_build_harvest_projection(harvests),
                "expense_insights":expense_insights,
                "farm_performance":farm_performance,
-               "predictions":preds})
+               "predictions":preds,
+               "coconut_prices":_get_coconut_price_snapshot()})
 
 if __name__ == "__main__":
     print("\nCocoTrack Web UI starting...")
     print("   Open http://localhost:3333 in your browser\n")
     app.run(debug=False, host=os.environ.get("HOST", "127.0.0.1"), port=3333)
-
-
-
-
-
-
-
-
-
-
 

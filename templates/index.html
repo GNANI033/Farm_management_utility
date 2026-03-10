@@ -288,9 +288,17 @@
     /* Stats */
     .stats-row {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 16px;
       margin-bottom: 20px
+    }
+
+    .price-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+      align-items: start;
     }
 
     .stat-card {
@@ -340,6 +348,129 @@
       color: var(--rain)
     }
 
+    .stat-card.summary {
+      min-height: 0;
+    }
+
+    .stat-stack {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      align-items: center;
+    }
+
+    .stat-stack-item .stat-value {
+      margin-bottom: 0;
+    }
+
+    .stat-divider {
+      display: none;
+    }
+
+    .stat-value.amber-text {
+      color: var(--husk);
+    }
+
+    .stat-value.green-text {
+      color: var(--lime);
+    }
+
+    .price-card-body {
+      display: grid;
+      gap: 10px;
+    }
+
+    .price-updated {
+      font-size: 11px;
+      color: var(--fog);
+      line-height: 1.4;
+    }
+
+    .price-summary {
+      display: none;
+    }
+
+    .price-line {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: start;
+      padding-top: 10px;
+      border-top: 1px solid rgba(212, 168, 75, .12);
+    }
+
+    .price-line:first-of-type {
+      padding-top: 0;
+      border-top: none;
+    }
+
+    .price-line-label {
+      font-size: 10px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--fog)
+    }
+
+    .price-line-value {
+      text-align: right;
+      font-size: 15px;
+      color: var(--cream);
+      font-weight: 600;
+      line-height: 1.35;
+    }
+
+    .price-line-market {
+      display: block;
+      margin-top: 2px;
+      font-size: 11px;
+      color: var(--fog);
+      font-weight: 400;
+    }
+
+    .price-markets {
+      margin-top: 4px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(212, 168, 75, .12);
+    }
+
+    .price-market-title {
+      font-size: 10px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--fog);
+      margin-bottom: 6px;
+    }
+
+    .price-market-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px 16px;
+    }
+
+    .price-market-row {
+      display: grid;
+      gap: 2px;
+      font-size: 12px;
+      color: var(--cream);
+      padding: 0;
+    }
+
+    .price-market-name {
+      overflow-wrap: anywhere;
+    }
+
+    .price-market-rate {
+      color: var(--husk);
+      white-space: nowrap;
+    }
+
+    .price-card {
+      min-height: 100%;
+    }
+
+    .price-card .stat-label {
+      margin-bottom: 10px;
+    }
 
     .stat-sub {
       font-size: 11px;
@@ -1565,6 +1696,20 @@
         gap: 10px;
       }
 
+      .price-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      .stat-stack {
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .price-market-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
       .stat-value {
         font-size: 22px;
       }
@@ -1648,6 +1793,15 @@
 
     @media (max-width: 640px) {
       .stats-row {
+        grid-template-columns: 1fr;
+      }
+
+      .price-row {
+        grid-template-columns: 1fr;
+      }
+
+      .stat-stack,
+      .price-market-grid {
         grid-template-columns: 1fr;
       }
 
@@ -1779,13 +1933,17 @@
         <!-- Dashboard -->
         <div class="page active" id="page-dashboard">
           <div class="stats-row">
-            <div class="stat-card green">
-              <div class="stat-label">Farms</div>
-              <div class="stat-value" id="statFarms">—</div>
-            </div>
-            <div class="stat-card amber">
-              <div class="stat-label">Trees</div>
-              <div class="stat-value" id="statTrees">—</div>
+            <div class="stat-card summary">
+              <div class="stat-stack">
+                <div class="stat-stack-item">
+                  <div class="stat-label">Total Trees</div>
+                  <div class="stat-value amber-text" id="statTreesCount">—</div>
+                </div>
+                <div class="stat-stack-item">
+                  <div class="stat-label">Total Farms</div>
+                  <div class="stat-value green-text" id="statFarmCount">—</div>
+                </div>
+              </div>
             </div>
             <div class="stat-card yellow">
               <div class="stat-label">Total Revenue</div>
@@ -1795,6 +1953,16 @@
               <div class="stat-label">Total Profit</div>
               <div class="stat-value" id="statProfit">—</div>
               <div class="stat-sub" id="statProfitPct">Net Return: —</div>
+            </div>
+          </div>
+          <div class="price-row">
+            <div class="stat-card amber price-card">
+              <div class="stat-label">Thanjavur Coconut Rate</div>
+              <div id="thanjavurPriceCard" class="price-card-body"></div>
+            </div>
+            <div class="stat-card amber price-card">
+              <div class="stat-label">Tamil Nadu Coconut Rate</div>
+              <div id="tamilNaduPriceCard" class="price-card-body"></div>
             </div>
           </div>
           <div id="dashWeather"></div>
@@ -2529,6 +2697,7 @@
     // ── Helpers ────────────────────────────────────────────────────────────────
     const fmt = v => '₹' + Number(v).toLocaleString('en-IN', { maximumFractionDigits: 0 });
     const fmtF = v => '₹' + Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const fmtKg = v => `Rs.${Number(v || 0).toFixed(1)}/kg`;
     const today = () => new Date().toISOString().split('T')[0];
     const isMobileView = () => window.matchMedia('(max-width: 980px)').matches;
 
@@ -2626,11 +2795,53 @@
           api('GET', '/api/stats'), api('GET', '/api/alerts'),
           api('GET', '/api/harvests'), api('GET', '/api/farmer')
         ]);
-        document.getElementById('statFarms').textContent = stats.total_farms;
-        document.getElementById('statTrees').textContent = stats.total_trees.toLocaleString();
+        document.getElementById('statFarmCount').textContent = stats.total_farms;
+        document.getElementById('statTreesCount').textContent = stats.total_trees.toLocaleString();
         document.getElementById('statRevenue').textContent = fmt(stats.total_revenue);
         document.getElementById('statProfit').textContent = fmt(stats.total_profit);
         document.getElementById('statProfitPct').textContent = 'Net Return: ' + (stats.net_return_pct || 0).toFixed(2) + '%';
+        const coconutPrices = stats.coconut_prices || {};
+        const thanjavur = coconutPrices.thanjavur || {};
+        const tamilNadu = coconutPrices.tamil_nadu || {};
+        const thanjavurMarkets = Array.isArray(thanjavur.markets) ? thanjavur.markets : [];
+        const thanjavurEl = document.getElementById('thanjavurPriceCard');
+        const tamilNaduEl = document.getElementById('tamilNaduPriceCard');
+        if (thanjavurEl) {
+          thanjavurEl.innerHTML = `
+            <div class="price-updated">Updated: ${thanjavur.data_date || '—'}</div>
+            <div class="price-line">
+              <div class="price-line-label">Average</div>
+              <div class="price-line-value">${fmtKg(thanjavur.average_kg)}</div>
+            </div>
+            <div class="price-line">
+              <div class="price-line-label">Costliest</div>
+              <div class="price-line-value">${fmtKg(thanjavur.costliest?.price_kg)}<span class="price-line-market">${thanjavur.costliest?.market || '—'}</span></div>
+            </div>
+            <div class="price-line">
+              <div class="price-line-label">Lowest</div>
+              <div class="price-line-value">${fmtKg(thanjavur.lowest?.price_kg)}<span class="price-line-market">${thanjavur.lowest?.market || '—'}</span></div>
+            </div>
+            <div class="price-markets">
+              <div class="price-market-title">Market Breakdown (${thanjavurMarkets.length} markets)</div>
+              <div class="price-market-grid">${thanjavurMarkets.map(m => `<div class="price-market-row"><span class="price-market-name">${m.market}</span><span class="price-market-rate">${fmtKg(m.price_kg)}</span></div>`).join('')}</div>
+            </div>`;
+        }
+        if (tamilNaduEl) {
+          tamilNaduEl.innerHTML = `
+            <div class="price-updated">Source updated: ${tamilNadu.updated || '—'} • ${Number(tamilNadu.total_mandis || 0).toLocaleString()} mandis</div>
+            <div class="price-line">
+              <div class="price-line-label">Costliest</div>
+              <div class="price-line-value">${fmtKg(tamilNadu.costliest?.price_kg)}<span class="price-line-market">${tamilNadu.costliest?.market || '—'}</span></div>
+            </div>
+            <div class="price-line">
+              <div class="price-line-label">Lowest</div>
+              <div class="price-line-value">${fmtKg(tamilNadu.lowest?.price_kg)}<span class="price-line-market">${tamilNadu.lowest?.market || '—'}</span></div>
+            </div>
+            <div class="price-line">
+              <div class="price-line-label">Average</div>
+              <div class="price-line-value">${fmtKg(tamilNadu.average_kg)}<span class="price-line-market">State-wide average</span></div>
+            </div>`;
+        }
         renderProjectionChart(stats.harvest_projection || { labels: [], values: [] });
         document.getElementById('seasonName').textContent = (stats.season || '').replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
         document.getElementById('seasonCycle').textContent = `${stats.harvest_interval.lo}–${stats.harvest_interval.hi} day cycle`;
@@ -3859,23 +4070,4 @@
 </body>
 
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
