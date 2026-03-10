@@ -2284,6 +2284,13 @@
       const needsCsrf = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(upperMethod) && !path.startsWith('/api/auth/');
       if (needsCsrf && CSRF_TOKEN) headers['X-CSRF-Token'] = CSRF_TOKEN;
 
+      if (path === '/api/auth/setup') {
+        const setupToken = sessionStorage.getItem('setupToken') || prompt('Enter setup token to initialize TOTP setup');
+        if (!setupToken) throw new Error('Setup token required');
+        sessionStorage.setItem('setupToken', setupToken);
+        headers['X-Setup-Token'] = setupToken;
+      }
+
       const opts = { method, headers };
       if (body) opts.body = JSON.stringify(body);
       const res = await fetch(path, opts);
@@ -2399,7 +2406,7 @@
       overlay.classList.toggle('setup-mode', setupRequired);
 
       if (setupRequired && !document.querySelector('#qrContainer img')) {
-        api('POST', '/api/auth/setup').then(data => {
+        api('POST', '/api/auth/setup', {}).then(data => {
           const qc = document.getElementById('qrContainer');
           qc.innerHTML = '';
           const img = document.createElement('img');
@@ -2407,6 +2414,7 @@
           img.alt = 'QR Code';
           qc.appendChild(img);
         }).catch((e) => {
+          if ((e.message || '').toLowerCase().includes('invalid setup token')) sessionStorage.removeItem('setupToken');
           toast(e.message || 'Setup is disabled', true);
         });
       }
@@ -2441,7 +2449,7 @@
 
     async function logout() {
       try {
-        await api('POST', '/api/auth/logout');
+        await api('POST', '/api/auth/logout', {});
         checkAuthStatus();
         toast('Logged out');
       } catch (e) { toast(e.message, true); }
@@ -3613,6 +3621,9 @@
 </body>
 
 </html>
+
+
+
 
 
 

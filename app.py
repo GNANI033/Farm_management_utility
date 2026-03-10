@@ -591,11 +591,13 @@ def auth_setup():
     if os.environ.get("ALLOW_AUTH_SETUP", "0") != "1":
         return err("Initial setup is disabled. Set ALLOW_AUTH_SETUP=1 temporarily.", 403)
 
-    setup_token = os.environ.get("SETUP_TOKEN")
-    if setup_token:
-        provided = request.headers.get("X-Setup-Token", "")
-        if not secrets.compare_digest(setup_token, provided):
-            return err("Invalid setup token", 403)
+    setup_token = os.environ.get("SETUP_TOKEN", "").strip()
+    if not setup_token:
+        return err("Setup token is required. Set SETUP_TOKEN when ALLOW_AUTH_SETUP=1.", 403)
+
+    provided = request.headers.get("X-Setup-Token", "")
+    if not secrets.compare_digest(setup_token, provided):
+        return err("Invalid setup token", 403)
 
     secret = pyotp.random_base32()
     data["totp_secret"] = secret
@@ -1407,6 +1409,7 @@ if __name__ == "__main__":
     print("\nCocoTrack Web UI starting...")
     print("   Open http://localhost:3333 in your browser\n")
     app.run(debug=False, host=os.environ.get("HOST", "127.0.0.1"), port=3333)
+
 
 
 
