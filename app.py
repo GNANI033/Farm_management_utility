@@ -537,6 +537,7 @@ def check_auth():
     # Check if setup is needed
     data = load_data()
     if not data.get("totp_secret"):
+        _clear_auth_session()
         if request.path == "/api/auth/setup":
             return
         return err("Setup required", 401)
@@ -573,9 +574,12 @@ def auth_csrf():
 @app.route("/api/auth/status")
 def auth_status():
     data = load_data()
+    setup_required = not bool(data.get("totp_secret"))
+    if setup_required:
+        _clear_auth_session()
     return ok({
-        "setup_required": not bool(data.get("totp_secret")),
-        "authenticated": _is_session_authenticated()
+        "setup_required": setup_required,
+        "authenticated": (not setup_required) and _is_session_authenticated()
     })
 
 @app.route("/api/auth/setup", methods=["POST"])
@@ -1403,6 +1407,7 @@ if __name__ == "__main__":
     print("\nCocoTrack Web UI starting...")
     print("   Open http://localhost:3333 in your browser\n")
     app.run(debug=False, host=os.environ.get("HOST", "127.0.0.1"), port=3333)
+
 
 
 
