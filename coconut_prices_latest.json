@@ -18,7 +18,7 @@
   },
   "thanjavur": {
     "data_date": "2026-03-06",
-    "average_per_kg": 63.33,
+    "average_per_kg": 65.0,
     "costliest_per_kg": 70.0,
     "lowest_per_kg": 60.0,
     "markets": [
@@ -37,32 +37,11 @@
         "date": "2026-03-06"
       },
       {
-        "market": "Papanasam(Uzhavar Sandhai )",
-        "price_per_kg": 65.0,
-        "min_per_kg": 65.0,
-        "max_per_kg": 65.0,
-        "date": "2026-03-05"
-      },
-      {
         "market": "Pattukottai(Uzhavar Sandhai )",
         "price_per_kg": 60.0,
         "min_per_kg": 60.0,
         "max_per_kg": 60.0,
         "date": "2026-03-06"
-      },
-      {
-        "market": "Peravurani(Uzhavar Sandhai)",
-        "price_per_kg": 60.0,
-        "min_per_kg": 60.0,
-        "max_per_kg": 60.0,
-        "date": "2026-03-05"
-      },
-      {
-        "market": "Thanjavur(Uzhavar Sandhai )",
-        "price_per_kg": 60.0,
-        "min_per_kg": 60.0,
-        "max_per_kg": 60.0,
-        "date": "2026-03-05"
       }
     ]
   }

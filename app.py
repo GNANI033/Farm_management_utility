@@ -36,6 +36,7 @@ _login_attempts = {}
 
 COCONUT_PRICE_FILE = os.path.join(os.path.dirname(__file__), "coconut_prices_latest.json")
 COCONUT_PRICE_SCRIPT = os.path.join(os.path.dirname(__file__), "coconut_price_scraper.py")
+THANJAVUR_ALLOWED_MARKETS = {"tirukattupalli", "kumbakonam", "pattukottai"}
 
 COCONUT_PRICE_SNAPSHOT = {
     "source": "commodityfact.org",
@@ -58,8 +59,8 @@ COCONUT_PRICE_SNAPSHOT = {
     },
     "thanjavur": {
         "data_date": "6 March 2026",
-        "average_kg": 63.33,
-        "average_quintal": 6333,
+        "average_kg": 65.0,
+        "average_quintal": 6500,
         "costliest": {
             "market": "Tirukattupalli",
             "price_kg": 70.0,
@@ -73,10 +74,7 @@ COCONUT_PRICE_SNAPSHOT = {
         "markets": [
             {"market": "Tirukattupalli", "price_kg": 70.0, "price_quintal": 7000},
             {"market": "Kumbakonam", "price_kg": 65.0, "price_quintal": 6500},
-            {"market": "Papanasam", "price_kg": 65.0, "price_quintal": 6500},
             {"market": "Pattukottai", "price_kg": 60.0, "price_quintal": 6000},
-            {"market": "Thanjavur", "price_kg": 60.0, "price_quintal": 6000},
-            {"market": "Peravurani", "price_kg": 60.0, "price_quintal": 6000},
         ],
     },
 }
@@ -106,14 +104,26 @@ def err(msg, code=400):
     return jsonify({"ok": False, "error": msg}), code
 
 
+def _normalize_market_name(name):
+    base = (name or "").split("(")[0].strip().lower()
+    return re.sub(r"\s+", " ", base)
+
+
 def _normalize_coconut_price_payload(payload):
     payload = payload or {}
     tn = payload.get("tamil_nadu") or {}
     tj = payload.get("thanjavur") or {}
-    tj_markets = tj.get("markets") or []
+    tj_markets = [
+        m for m in (tj.get("markets") or [])
+        if _normalize_market_name(m.get("market")) in THANJAVUR_ALLOWED_MARKETS
+    ]
 
     costliest_market = max(tj_markets, key=lambda m: float(m.get("price_per_kg", 0) or 0), default={})
     lowest_market = min(tj_markets, key=lambda m: float(m.get("price_per_kg", 0) or 0), default={}) if tj_markets else {}
+    average_market_price = (
+        round(sum(float(m.get("price_per_kg", 0) or 0) for m in tj_markets) / len(tj_markets), 2)
+        if tj_markets else COCONUT_PRICE_SNAPSHOT["thanjavur"]["average_kg"]
+    )
 
     return {
         "source": payload.get("source") or COCONUT_PRICE_SNAPSHOT.get("source"),
@@ -132,7 +142,7 @@ def _normalize_coconut_price_payload(payload):
         },
         "thanjavur": {
             "data_date": tj.get("data_date") or COCONUT_PRICE_SNAPSHOT["thanjavur"]["data_date"],
-            "average_kg": float(tj.get("average_per_kg") or COCONUT_PRICE_SNAPSHOT["thanjavur"]["average_kg"]),
+            "average_kg": average_market_price,
             "costliest": {
                 "market": costliest_market.get("market") or COCONUT_PRICE_SNAPSHOT["thanjavur"]["costliest"]["market"],
                 "price_kg": float(costliest_market.get("price_per_kg") or COCONUT_PRICE_SNAPSHOT["thanjavur"]["costliest"]["price_kg"]),

@@ -350,7 +350,7 @@
 
     .price-row {
       display: grid;
-      grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+      grid-template-columns: 1fr;
       gap: 16px;
       margin-bottom: 20px;
       align-items: start;
@@ -542,6 +542,86 @@
 
     .price-card-header .stat-label {
       margin-bottom: 0;
+    }
+
+    .price-compare-card {
+      width: 100%;
+    }
+
+    .price-compare-meta {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(212, 168, 75, .12);
+    }
+
+    .price-compare-grid {
+      display: grid;
+      grid-template-columns: minmax(120px, .7fr) minmax(0, 1fr) minmax(0, 1fr);
+      gap: 0;
+      margin-top: 12px;
+      border: 1px solid rgba(212, 168, 75, .12);
+      border-radius: 18px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, .02);
+    }
+
+    .price-compare-head,
+    .price-compare-row-label,
+    .price-compare-cell {
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(212, 168, 75, .12);
+    }
+
+    .price-compare-head {
+      font-size: 10px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--fog);
+      background: rgba(212, 168, 75, .06);
+    }
+
+    .price-compare-head.row-label {
+      background: rgba(212, 168, 75, .04);
+    }
+
+    .price-compare-row-label {
+      display: flex;
+      align-items: center;
+      font-size: 11px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--fog);
+      background: rgba(212, 168, 75, .04);
+    }
+
+    .price-compare-cell {
+      min-width: 0;
+    }
+
+    .price-compare-grid > :nth-last-child(-n + 3) {
+      border-bottom: none;
+    }
+
+    .price-compare-grid > :nth-child(3n + 2),
+    .price-compare-grid > :nth-child(3n + 3) {
+      border-left: 1px solid rgba(212, 168, 75, .12);
+    }
+
+    .price-compare-value {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--cream);
+      line-height: 1.2;
+    }
+
+    .price-compare-market {
+      margin-top: 4px;
+      font-size: 12px;
+      color: var(--fog);
+      line-height: 1.35;
+      overflow-wrap: anywhere;
     }
 
     .refresh-btn {
@@ -1813,6 +1893,14 @@
         gap: 12px;
       }
 
+      .price-compare-meta {
+        grid-template-columns: 1fr;
+      }
+
+      .price-compare-grid {
+        grid-template-columns: minmax(96px, .8fr) minmax(0, 1fr) minmax(0, 1fr);
+      }
+
       .price-market-grid {
         grid-template-columns: 1fr 1fr;
       }
@@ -1910,6 +1998,27 @@
       .stat-stack,
       .price-market-grid {
         grid-template-columns: 1fr;
+      }
+
+      .price-compare-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .price-compare-head.row-label {
+        display: none;
+      }
+
+      .price-compare-head {
+        border-left: none !important;
+      }
+
+      .price-compare-row-label {
+        border-top: 1px solid rgba(212, 168, 75, .12);
+      }
+
+      .price-compare-cell {
+        border-left: none !important;
+        padding-top: 10px;
       }
 
       .topbar {
@@ -2068,16 +2177,12 @@
             </div>
           </div>
           <div class="price-row">
-            <div class="stat-card amber price-card">
-              <div class="stat-label">Thanjavur Coconut Rate</div>
-              <div id="thanjavurPriceCard" class="price-card-body"></div>
-            </div>
-            <div class="stat-card amber price-card">
+            <div class="stat-card amber price-card price-compare-card">
               <div class="price-card-header">
-                <div class="stat-label">Tamil Nadu Coconut Rate</div>
+                <div class="stat-label">Coconut Rate Comparison</div>
                 <button type="button" id="refreshCoconutPricesBtn" class="refresh-btn" onclick="refreshCoconutPrices()">↻ Refresh</button>
               </div>
-              <div id="tamilNaduPriceCard" class="price-card-body"></div>
+              <div id="coconutPriceComparisonCard" class="price-card-body"></div>
             </div>
           </div>
           <div id="dashWeather"></div>
@@ -2971,45 +3076,59 @@
         const thanjavur = coconutPrices.thanjavur || {};
         const tamilNadu = coconutPrices.tamil_nadu || {};
         const thanjavurMarkets = Array.isArray(thanjavur.markets) ? thanjavur.markets : [];
-        const thanjavurEl = document.getElementById('thanjavurPriceCard');
-        const tamilNaduEl = document.getElementById('tamilNaduPriceCard');
-        if (thanjavurEl) {
-          thanjavurEl.innerHTML = `
-            <div class="price-updated">Updated: ${thanjavur.data_date || '—'}</div>
-            <div class="price-line">
-              <div class="price-line-label">Average</div>
-              <div class="price-line-value">${fmtKg(thanjavur.average_kg)}</div>
+        const coconutPriceEl = document.getElementById('coconutPriceComparisonCard');
+        const cleanMarketLabel = value => String(value || '—').replace(/\s*\(Uzhavar Sandhai\s*\)/gi, '').trim();
+        if (coconutPriceEl) {
+          const comparisonRows = [
+            {
+              label: 'Costliest',
+              tnValue: fmtKg(tamilNadu.costliest?.price_kg),
+              tnMeta: tamilNadu.costliest?.market || '—',
+              tjValue: fmtKg(thanjavur.costliest?.price_kg),
+              tjMeta: thanjavur.costliest?.market || '—',
+            },
+            {
+              label: 'Average',
+              tnValue: fmtKg(tamilNadu.average_kg),
+              tnMeta: 'State-wide average',
+              tjValue: fmtKg(thanjavur.average_kg),
+              tjMeta: `${thanjavurMarkets.length} selected markets`,
+            },
+            {
+              label: 'Lowest',
+              tnValue: fmtKg(tamilNadu.lowest?.price_kg),
+              tnMeta: tamilNadu.lowest?.market || '—',
+              tjValue: fmtKg(thanjavur.lowest?.price_kg),
+              tjMeta: thanjavur.lowest?.market || '—',
+            },
+          ];
+          coconutPriceEl.innerHTML = `
+            <div class="price-compare-meta">
+              <div class="price-updated">Tamil Nadu: ${tamilNadu.updated || '—'} • ${Number(tamilNadu.total_mandis || 0).toLocaleString()} mandis</div>
+              <div class="price-updated">Thanjavur: Updated ${thanjavur.data_date || '—'}</div>
             </div>
-            <div class="price-line">
-              <div class="price-line-label">Costliest</div>
-              <div class="price-line-value">${fmtKg(thanjavur.costliest?.price_kg)}<span class="price-line-market">${thanjavur.costliest?.market || '—'}</span></div>
-            </div>
-            <div class="price-line">
-              <div class="price-line-label">Lowest</div>
-              <div class="price-line-value">${fmtKg(thanjavur.lowest?.price_kg)}<span class="price-line-market">${thanjavur.lowest?.market || '—'}</span></div>
+            <div class="price-compare-grid">
+              <div class="price-compare-head row-label"></div>
+              <div class="price-compare-head">Tamil Nadu Wise</div>
+              <div class="price-compare-head">Thanjavur Wise</div>
+              ${comparisonRows.map(row => `
+                <div class="price-compare-row-label">${row.label}</div>
+                <div class="price-compare-cell">
+                  <div class="price-compare-value">${row.tnValue}</div>
+                  <div class="price-compare-market">${row.tnMeta}</div>
+                </div>
+                <div class="price-compare-cell">
+                  <div class="price-compare-value">${row.tjValue}</div>
+                  <div class="price-compare-market">${row.tjMeta}</div>
+                </div>
+              `).join('')}
             </div>
             <div class="price-markets">
-              <div class="price-market-title">Market Breakdown (${thanjavurMarkets.length} markets)</div>
+              <div class="price-market-title">Thanjavur Market Breakdown (${thanjavurMarkets.length} markets)</div>
               <div class="price-market-grid">${thanjavurMarkets.map(m => {
-                const label = String(m.market || '—').replace(/\s*\(Uzhavar Sandhai\s*\)/gi, '').trim();
+                const label = cleanMarketLabel(m.market);
                 return `<div class="price-market-row"><span class="price-market-name">${label}</span><span class="price-market-rate">${fmtKg(m.price_kg)}</span></div>`;
               }).join('')}</div>
-            </div>`;
-        }
-        if (tamilNaduEl) {
-          tamilNaduEl.innerHTML = `
-            <div class="price-updated">Source updated: ${tamilNadu.updated || '—'} • ${Number(tamilNadu.total_mandis || 0).toLocaleString()} mandis</div>
-            <div class="price-line">
-              <div class="price-line-label">Costliest</div>
-              <div class="price-line-value">${fmtKg(tamilNadu.costliest?.price_kg)}<span class="price-line-market">${tamilNadu.costliest?.market || '—'}</span></div>
-            </div>
-            <div class="price-line">
-              <div class="price-line-label">Lowest</div>
-              <div class="price-line-value">${fmtKg(tamilNadu.lowest?.price_kg)}<span class="price-line-market">${tamilNadu.lowest?.market || '—'}</span></div>
-            </div>
-            <div class="price-line">
-              <div class="price-line-label">Average</div>
-              <div class="price-line-value">${fmtKg(tamilNadu.average_kg)}<span class="price-line-market">State-wide average</span></div>
             </div>`;
         }
         renderProjectionChart(stats.harvest_projection || { labels: [], values: [] });
