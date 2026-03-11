@@ -1747,6 +1747,105 @@
       color: var(--fog)
     }
 
+    /* Consolidated Prediction Summary */
+    .pred-summary {
+      position: relative;
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, rgba(212,168,75,.08) 0%, rgba(78,205,196,.06) 100%);
+      border: 1px solid rgba(212,168,75,.18);
+      overflow: hidden;
+    }
+    .pred-summary::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--amber), var(--lime), #4ecdc4);
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+    .pred-summary-title {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--cream);
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .pred-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+    .pred-summary-stat {
+      text-align: center;
+      padding: 14px 8px;
+      border-radius: 10px;
+      background: rgba(0,0,0,.18);
+      border: 1px solid rgba(212,168,75,.08);
+      transition: transform .2s, box-shadow .2s;
+    }
+    .pred-summary-stat:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(0,0,0,.25);
+    }
+    .pred-summary-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      color: var(--fog);
+      margin-bottom: 6px;
+    }
+    .pred-summary-value {
+      font-size: 20px;
+      font-weight: 700;
+      font-family: 'DM Mono', monospace;
+    }
+    .pred-summary-value.amber { color: var(--amber); }
+    .pred-summary-value.lime  { color: var(--lime);  }
+    .pred-summary-value.red   { color: #e05c4b;      }
+    .pred-summary-value.fog   { color: var(--fog);   }
+    .pred-summary-value.cream { color: var(--cream); }
+    .pred-summary-sub {
+      font-size: 11px;
+      color: var(--fog);
+      margin-top: 4px;
+    }
+    .pred-trend-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .pred-trend-badge.improving { background: rgba(78,205,196,.12); color: var(--lime); }
+    .pred-trend-badge.declining { background: rgba(224,92,75,.12);  color: #e05c4b;     }
+    .pred-trend-badge.stable    { background: rgba(160,155,145,.12); color: var(--fog);  }
+    .pred-accuracy-bar {
+      width: 100%;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255,255,255,.06);
+      margin-top: 8px;
+      overflow: hidden;
+    }
+    .pred-accuracy-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width .6s ease;
+    }
+    .pred-accuracy-fill.moderate { width: 75%; background: var(--lime); }
+    .pred-accuracy-fill.low      { width: 35%; background: var(--amber); }
+    @media (max-width:700px) {
+      .pred-summary-grid { grid-template-columns: repeat(2,1fr); }
+      .pred-summary { padding: 18px 16px; }
+      .pred-summary-value { font-size: 17px; }
+    }
+
     /* Job sessions list */
     .session-list {
       margin-top: 12px
@@ -4228,7 +4327,55 @@
           el.innerHTML = `<div class="card" style="color:var(--fog);font-size:13px;line-height:1.8"><div class="card-title">🔮 Yield Predictions</div>⚠ No harvest data yet.<br>Log at least <strong>2 harvests</strong> per farm to see predictions.</div>`;
           return;
         }
-        el.innerHTML = `<div class="pred-grid">${stats.predictions.map(p => {
+
+        // ─── Consolidated Summary ───────────────────────────────
+        const preds = stats.predictions;
+        const totalNextLo = preds.reduce((s, p) => s + p.next_nuts_lo, 0);
+        const totalNextHi = preds.reduce((s, p) => s + p.next_nuts_hi, 0);
+        const totalAvgNuts = Math.round(preds.reduce((s, p) => s + p.avg_nuts, 0));
+        const totalAvgProfit = preds.reduce((s, p) => s + p.avg_profit, 0);
+
+        // Overall accuracy: weighted by harvest count
+        const totalHarvests = preds.reduce((s, p) => s + p.harvests_count, 0);
+        const moderateWeight = preds.reduce((s, p) => s + (p.accuracy === 'moderate' ? p.harvests_count : 0), 0);
+        const overallAccuracy = totalHarvests > 0 && (moderateWeight / totalHarvests) >= 0.5 ? 'moderate' : 'low';
+
+        // Overall trend: majority vote
+        const trendVotes = { improving: 0, declining: 0, stable: 0 };
+        preds.forEach(p => { trendVotes[p.trend] = (trendVotes[p.trend] || 0) + 1; });
+        const overallTrend = Object.entries(trendVotes).sort((a, b) => b[1] - a[1])[0][0];
+        const trendEmoji = overallTrend === 'improving' ? '📈' : overallTrend === 'declining' ? '📉' : '➡️';
+        const trendLabel = overallTrend.charAt(0).toUpperCase() + overallTrend.slice(1);
+
+        const summaryHTML = `<div class="pred-summary">
+          <div class="pred-summary-title">🌐 All Farms — Next Harvest Forecast</div>
+          <div class="pred-summary-grid">
+            <div class="pred-summary-stat">
+              <div class="pred-summary-label">Total Predicted</div>
+              <div class="pred-summary-value amber">${totalNextLo.toLocaleString()} – ${totalNextHi.toLocaleString()}</div>
+              <div class="pred-summary-sub">nuts across ${preds.length} farm${preds.length > 1 ? 's' : ''}</div>
+            </div>
+            <div class="pred-summary-stat">
+              <div class="pred-summary-label">Avg Harvest Total</div>
+              <div class="pred-summary-value cream">${totalAvgNuts.toLocaleString()}</div>
+              <div class="pred-summary-sub">nuts per harvest cycle</div>
+            </div>
+            <div class="pred-summary-stat">
+              <div class="pred-summary-label">Overall Trend</div>
+              <div class="pred-summary-value"><span class="pred-trend-badge ${overallTrend}">${trendEmoji} ${trendLabel}</span></div>
+              <div class="pred-summary-sub">${trendVotes.improving} up · ${trendVotes.declining} down · ${trendVotes.stable} flat</div>
+            </div>
+            <div class="pred-summary-stat">
+              <div class="pred-summary-label">Prediction Accuracy</div>
+              <div class="pred-summary-value ${overallAccuracy === 'moderate' ? 'lime' : 'amber'}">${overallAccuracy === 'moderate' ? '✅ Moderate' : '⚠ Low'}</div>
+              <div class="pred-accuracy-bar"><div class="pred-accuracy-fill ${overallAccuracy}"></div></div>
+              <div class="pred-summary-sub">${totalHarvests} harvests analyzed</div>
+            </div>
+          </div>
+        </div>`;
+
+        // ─── Per-farm cards ─────────────────────────────────────
+        el.innerHTML = summaryHTML + `<div class="pred-grid">${preds.map(p => {
           const tc = p.trend === 'improving' ? 'ti' : p.trend === 'declining' ? 'td' : 'ts';
           const te = p.trend === 'improving' ? '📈' : p.trend === 'declining' ? '📉' : '➡';
           return `<div class="pred-card">
