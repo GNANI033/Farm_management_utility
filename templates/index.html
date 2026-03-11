@@ -600,12 +600,12 @@
       min-width: 0;
     }
 
-    .price-compare-grid > :nth-last-child(-n + 3) {
+    .price-compare-grid> :nth-last-child(-n + 3) {
       border-bottom: none;
     }
 
-    .price-compare-grid > :nth-child(3n + 2),
-    .price-compare-grid > :nth-child(3n + 3) {
+    .price-compare-grid> :nth-child(3n + 2),
+    .price-compare-grid> :nth-child(3n + 3) {
       border-left: 1px solid rgba(212, 168, 75, .12);
     }
 
@@ -705,7 +705,8 @@
       overflow-wrap: anywhere;
       word-break: break-word;
     }
-.exp-break-grid {
+
+    .exp-break-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(220px, 1fr));
       gap: 12px
@@ -791,7 +792,8 @@
       color: var(--sun);
       background: rgba(232, 160, 32, .12)
     }
-/* Weather */
+
+    /* Weather */
     .weather-card {
       background: linear-gradient(135deg, rgba(74, 127, 165, .15), rgba(42, 61, 28, .3));
       border: 1px solid rgba(74, 127, 165, .25);
@@ -1322,6 +1324,8 @@
 
     .totp-input-group input {
       width: 100%;
+      height: 60px;
+      box-sizing: border-box;
       text-align: center;
       font-size: 24px;
       letter-spacing: 0.3em;
@@ -1753,18 +1757,22 @@
       border-radius: var(--radius);
       padding: 24px 28px;
       margin-bottom: 20px;
-      background: linear-gradient(135deg, rgba(212,168,75,.08) 0%, rgba(78,205,196,.06) 100%);
-      border: 1px solid rgba(212,168,75,.18);
+      background: linear-gradient(135deg, rgba(212, 168, 75, .08) 0%, rgba(78, 205, 196, .06) 100%);
+      border: 1px solid rgba(212, 168, 75, .18);
       overflow: hidden;
     }
+
     .pred-summary::before {
       content: '';
       position: absolute;
-      top: 0; left: 0; right: 0;
+      top: 0;
+      left: 0;
+      right: 0;
       height: 3px;
       background: linear-gradient(90deg, var(--amber), var(--lime), #4ecdc4);
       border-radius: var(--radius) var(--radius) 0 0;
     }
+
     .pred-summary-title {
       font-size: 17px;
       font-weight: 600;
@@ -1774,23 +1782,27 @@
       align-items: center;
       gap: 8px;
     }
+
     .pred-summary-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 16px;
     }
+
     .pred-summary-stat {
       text-align: center;
       padding: 14px 8px;
       border-radius: 10px;
-      background: rgba(0,0,0,.18);
-      border: 1px solid rgba(212,168,75,.08);
+      background: rgba(0, 0, 0, .18);
+      border: 1px solid rgba(212, 168, 75, .08);
       transition: transform .2s, box-shadow .2s;
     }
+
     .pred-summary-stat:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 16px rgba(0,0,0,.25);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, .25);
     }
+
     .pred-summary-label {
       font-size: 11px;
       text-transform: uppercase;
@@ -1798,21 +1810,39 @@
       color: var(--fog);
       margin-bottom: 6px;
     }
+
     .pred-summary-value {
       font-size: 20px;
       font-weight: 700;
       font-family: 'DM Mono', monospace;
     }
-    .pred-summary-value.amber { color: var(--amber); }
-    .pred-summary-value.lime  { color: var(--lime);  }
-    .pred-summary-value.red   { color: #e05c4b;      }
-    .pred-summary-value.fog   { color: var(--fog);   }
-    .pred-summary-value.cream { color: var(--cream); }
+
+    .pred-summary-value.amber {
+      color: var(--amber);
+    }
+
+    .pred-summary-value.lime {
+      color: var(--lime);
+    }
+
+    .pred-summary-value.red {
+      color: #e05c4b;
+    }
+
+    .pred-summary-value.fog {
+      color: var(--fog);
+    }
+
+    .pred-summary-value.cream {
+      color: var(--cream);
+    }
+
     .pred-summary-sub {
       font-size: 11px;
       color: var(--fog);
       margin-top: 4px;
     }
+
     .pred-trend-badge {
       display: inline-flex;
       align-items: center;
@@ -1822,28 +1852,59 @@
       font-size: 12px;
       font-weight: 600;
     }
-    .pred-trend-badge.improving { background: rgba(78,205,196,.12); color: var(--lime); }
-    .pred-trend-badge.declining { background: rgba(224,92,75,.12);  color: #e05c4b;     }
-    .pred-trend-badge.stable    { background: rgba(160,155,145,.12); color: var(--fog);  }
+
+    .pred-trend-badge.improving {
+      background: rgba(78, 205, 196, .12);
+      color: var(--lime);
+    }
+
+    .pred-trend-badge.declining {
+      background: rgba(224, 92, 75, .12);
+      color: #e05c4b;
+    }
+
+    .pred-trend-badge.stable {
+      background: rgba(160, 155, 145, .12);
+      color: var(--fog);
+    }
+
     .pred-accuracy-bar {
       width: 100%;
       height: 4px;
       border-radius: 2px;
-      background: rgba(255,255,255,.06);
+      background: rgba(255, 255, 255, .06);
       margin-top: 8px;
       overflow: hidden;
     }
+
     .pred-accuracy-fill {
       height: 100%;
       border-radius: 2px;
       transition: width .6s ease;
     }
-    .pred-accuracy-fill.moderate { width: 75%; background: var(--lime); }
-    .pred-accuracy-fill.low      { width: 35%; background: var(--amber); }
+
+    .pred-accuracy-fill.moderate {
+      width: 75%;
+      background: var(--lime);
+    }
+
+    .pred-accuracy-fill.low {
+      width: 35%;
+      background: var(--amber);
+    }
+
     @media (max-width:700px) {
-      .pred-summary-grid { grid-template-columns: repeat(2,1fr); }
-      .pred-summary { padding: 18px 16px; }
-      .pred-summary-value { font-size: 17px; }
+      .pred-summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .pred-summary {
+        padding: 18px 16px;
+      }
+
+      .pred-summary-value {
+        font-size: 17px;
+      }
     }
 
     /* Job sessions list */
@@ -2179,24 +2240,74 @@
       <div class="auth-setup-view">
         <div class="auth-logo">🔐</div>
         <div class="auth-title">Security Setup</div>
-        <div class="auth-desc">Scan this QR code with your Authenticator app (Google Authenticator, Authy, etc.) to link
-          your account.</div>
-        <div id="qrContainer"></div>
-        <div class="auth-desc" style="margin-top:0px; font-size:13px">Once scanned, enter the 6-digit code below to
-          verify.</div>
+        <div class="auth-desc">Set up your profile and two-factor authentication to protect your CocoTrack data.</div>
+
+        <!-- Setup Step 1: Personal Info -->
+        <div id="setupStep1">
+          <div class="auth-desc" style="margin-top:8px; font-size:13px; color:var(--fog)">First, tell us about yourself.
+          </div>
+          <div class="totp-input-group" style="margin-top: 15px;">
+            <input type="text" id="setupFullName" placeholder="Full Name"
+              style="text-align: left; padding: 14px 15px; font-size: 16px; letter-spacing: normal; font-family: inherit; box-sizing: border-box;">
+          </div>
+          <div class="totp-input-group" style="margin-top: 10px;">
+            <input type="email" id="setupEmail" placeholder="Email Address"
+              style="text-align: left; padding: 14px 15px; font-size: 16px; letter-spacing: normal; font-family: inherit; box-sizing: border-box;">
+          </div>
+          <button class="btn btn-p"
+            style="width:100%; justify-content:center; padding:16px; font-size:15px; margin-top:16px"
+            onclick="goSetupStep2()">Next ➔</button>
+        </div>
+
+        <!-- Setup Step 2: Username -->
+        <div id="setupStep2" style="display:none">
+          <div class="auth-desc" style="margin-top:8px; font-size:13px; color:var(--fog)">Choose a username, then click
+            the button below to generate a QR code. Scan it with your Authenticator app.</div>
+          <div class="totp-input-group" style="margin-top: 15px;">
+            <input type="text" id="setupUsername" placeholder="Username"
+              style="text-align: left; padding: 14px 15px; font-size: 16px; letter-spacing: normal; font-family: inherit; box-sizing: border-box;">
+          </div>
+          <button class="btn btn-p"
+            style="width:100%; justify-content:center; padding:16px; font-size:15px; margin-top:16px"
+            onclick="beginSetup()">🔑 Generate QR Code</button>
+        </div>
+
+        <!-- Setup Step 3: QR Code & Verification -->
+        <div id="setupStep3" style="display:none">
+          <div id="qrContainer"></div>
+          <div class="auth-desc" style="margin-top:0px; font-size:13px">Scan the QR code above, then enter the 6-digit
+            code below to confirm.</div>
+        </div>
       </div>
 
       <div class="auth-login-view">
         <div class="auth-logo">🌴</div>
         <div class="auth-title">CocoTrack</div>
-        <div class="auth-desc">Enter your 6-digit security code from your Authenticator app to continue.</div>
+
+        <!-- Login Step 1: Username -->
+        <div id="loginStep1">
+          <div class="auth-desc">Enter your username to continue.</div>
+          <div class="totp-input-group" style="margin-bottom: 10px;">
+            <input type="text" id="loginUsername" placeholder="Username"
+              style="text-align: left; padding: 14px 15px; font-size: 20px; letter-spacing: normal; width: 100%; box-sizing: border-box; font-family: inherit;">
+          </div>
+          <button class="btn btn-p" style="width:100%; justify-content:center; padding:18px; font-size:16px"
+            onclick="goLoginStep2()">Next ➔</button>
+        </div>
+
+        <!-- Login Step 2: TOTP -->
+        <div id="loginStep2" style="display:none">
+          <div class="auth-desc">Enter your 6-digit security code from your Authenticator app.</div>
+        </div>
       </div>
 
-      <div class="totp-input-group">
-        <input type="text" id="totpCode" maxlength="6" placeholder="000000" inputmode="numeric">
+      <div class="totp-input-group" id="totpInputGroup" style="display:none">
+        <input type="text" id="totpCode" maxlength="6" placeholder="000000" inputmode="numeric"
+          style="width: 100%; box-sizing: border-box;">
       </div>
 
-      <button class="btn btn-p" style="width:100%; justify-content:center; padding:18px; font-size:16px"
+      <button class="btn btn-p" id="authSubmitBtn"
+        style="width:100%; justify-content:center; padding:18px; font-size:16px; display:none"
         onclick="handleAuthSubmit()">Verify & Enter</button>
     </div>
   </div>
@@ -2241,7 +2352,8 @@
           <div class="topbar-title" id="pageTitle">Dashboard</div>
         </div>
         <div class="topbar-actions">
-          <button id="notificationBtn" class="notification-btn" type="button" aria-label="Open alerts" title="View alerts">
+          <button id="notificationBtn" class="notification-btn" type="button" aria-label="Open alerts"
+            title="View alerts">
             <span class="notification-icon">🔔</span>
             <span class="notification-count hidden" id="notificationCount">0</span>
           </button>
@@ -2279,7 +2391,8 @@
             <div class="stat-card amber price-card price-compare-card">
               <div class="price-card-header">
                 <div class="stat-label">Coconut Rate Comparison</div>
-                <button type="button" id="refreshCoconutPricesBtn" class="refresh-btn" onclick="refreshCoconutPrices()">↻ Refresh</button>
+                <button type="button" id="refreshCoconutPricesBtn" class="refresh-btn"
+                  onclick="refreshCoconutPrices()">↻ Refresh</button>
               </div>
               <div id="coconutPriceComparisonCard" class="price-card-body"></div>
             </div>
@@ -2493,18 +2606,23 @@
               <div class="card-title">🧪 Log Fertilizer Application</div>
               <div class="form-grid c3">
                 <div class="fg"><label>Farm *</label><select id="fjFarm" onchange="onFertFarmChange()"></select></div>
-                <div class="fg"><label>Dosage Preset (by age) *</label><select id="fjPreset" onchange="onPresetChange()"></select></div>
+                <div class="fg"><label>Dosage Preset (by age) *</label><select id="fjPreset"
+                    onchange="onPresetChange()"></select></div>
                 <div class="fg"><label>Date *</label><input id="fjDate" type="date"></div>
-                <div class="fg"><label>% Farm Completed Today *</label><input id="fjProgress" type="number" min="1" max="100" placeholder="20"></div>
-                <div class="fg"><label>Today's Expense (₹) *</label><input id="fjExpense" type="number" step="1" placeholder="2500"></div>
-                <div class="fg"><label>Area Covered (optional)</label><input id="fjArea" placeholder="e.g. north block"></div>
+                <div class="fg"><label>% Farm Completed Today *</label><input id="fjProgress" type="number" min="1"
+                    max="100" placeholder="20"></div>
+                <div class="fg"><label>Today's Expense (₹) *</label><input id="fjExpense" type="number" step="1"
+                    placeholder="2500"></div>
+                <div class="fg"><label>Area Covered (optional)</label><input id="fjArea" placeholder="e.g. north block">
+                </div>
               </div>
 
               <div class="sdiv">
                 <hr><span>Preset Details</span>
                 <hr>
               </div>
-              <div id="fjCompositionInfo" style="font-size:13px;color:var(--fog);margin-bottom:14px">Pick a farm to auto-match presets by tree age</div>
+              <div id="fjCompositionInfo" style="font-size:13px;color:var(--fog);margin-bottom:14px">Pick a farm to
+                auto-match presets by tree age</div>
 
               <div class="form-grid">
                 <div class="fg s2"><label>Notes</label><textarea id="fjNotes"
@@ -2521,12 +2639,17 @@
           <div id="tab-fertilizers-compositions" style="display:none">
             <div class="card" style="margin-bottom:16px">
               <div class="card-title">📋 Save Age-Based Dosage Preset</div>
-              <p style="font-size:12px;color:var(--fog);margin-bottom:14px">Set once per tree-age range. Add all fertilizer quantities in one preset.</p>
+              <p style="font-size:12px;color:var(--fog);margin-bottom:14px">Set once per tree-age range. Add all
+                fertilizer quantities in one preset.</p>
               <div class="form-grid c3">
-                <div class="fg"><label>Preset Name *</label><input id="cpPresetName" placeholder="e.g. Yearly Full Dose"></div>
-                <div class="fg"><label>Tree Age From (years) *</label><input id="cpAgeMin" type="number" min="0" step="1" placeholder="5"></div>
-                <div class="fg"><label>Tree Age To (years) *</label><input id="cpAgeMax" type="number" min="0" step="1" placeholder="15"></div>
-                <div class="fg"><label>Application Method</label><input id="cpMethod" placeholder="ring, broadcast…"></div>
+                <div class="fg"><label>Preset Name *</label><input id="cpPresetName"
+                    placeholder="e.g. Yearly Full Dose"></div>
+                <div class="fg"><label>Tree Age From (years) *</label><input id="cpAgeMin" type="number" min="0"
+                    step="1" placeholder="5"></div>
+                <div class="fg"><label>Tree Age To (years) *</label><input id="cpAgeMax" type="number" min="0" step="1"
+                    placeholder="15"></div>
+                <div class="fg"><label>Application Method</label><input id="cpMethod" placeholder="ring, broadcast…">
+                </div>
                 <div class="fg"><label>Notes</label><input id="cpNotes" placeholder="Optional"></div>
               </div>
 
@@ -2564,9 +2687,12 @@
             <div class="form-grid c3">
               <div class="fg"><label>Date *</label><input id="xDate" type="date"></div>
               <div class="fg"><label>Farm (optional)</label><select id="xFarm"></select></div>
-              <div class="fg"><label>Category *</label><input id="xCategory" placeholder="e.g. Irrigation, Repair"></div>
-              <div class="fg"><label>Amount (₹) *</label><input id="xAmount" type="number" step="0.01" placeholder="0"></div>
-              <div class="fg s2"><label>Description</label><input id="xDesc" placeholder="What was this expense for?"></div>
+              <div class="fg"><label>Category *</label><input id="xCategory" placeholder="e.g. Irrigation, Repair">
+              </div>
+              <div class="fg"><label>Amount (₹) *</label><input id="xAmount" type="number" step="0.01" placeholder="0">
+              </div>
+              <div class="fg s2"><label>Description</label><input id="xDesc" placeholder="What was this expense for?">
+              </div>
               <div class="fg s2"><label>Notes</label><textarea id="xNotes" placeholder="Optional"></textarea></div>
             </div>
             <div class="btn-row">
@@ -2575,7 +2701,11 @@
           </div>
           <div class="card">
             <div class="card-title">🧾 Expense History</div>
-            <div id="expensesList"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+            <div id="expensesList">
+              <div class="loading">
+                <div class="spinner"></div>Loading…
+              </div>
+            </div>
           </div>
         </div>
         <!-- Calculator -->
@@ -2594,7 +2724,8 @@
             </div>
             <div style="display:flex;gap:10px;align-items:flex-end;margin:10px 0 18px">
               <div class="fg" style="flex:1"><label>Harvest ID (optional)</label><input id="cHarvestId"
-                  placeholder="Leave blank to load latest Yet to Decide harvest" style="font-family:'DM Mono',monospace;font-size:12px"></div>
+                  placeholder="Leave blank to load latest Yet to Decide harvest"
+                  style="font-family:'DM Mono',monospace;font-size:12px"></div>
               <button class="btn btn-g" onclick="loadHarvestToCalc()">Load</button>
             </div>
             <div class="sdiv">
@@ -2762,7 +2893,11 @@
       <div style="overflow-x:auto;margin-bottom:16px">
         <table class="data-table">
           <thead>
-            <tr><th>Farm</th><th>Total Nuts *</th><th>Defective / Dropped</th></tr>
+            <tr>
+              <th>Farm</th>
+              <th>Total Nuts *</th>
+              <th>Defective / Dropped</th>
+            </tr>
           </thead>
           <tbody id="editHarvestFarmList"></tbody>
         </table>
@@ -2799,7 +2934,8 @@
         </div>
         <div class="fg"><label>Area Covered (optional)</label><input id="sessArea"
             placeholder="e.g. North block, rows 1-20"></div>
-        <div class="fg"><label>Today's Expense (₹, optional)</label><input id="sessExpense" type="number" step="1" placeholder="0"></div>
+        <div class="fg"><label>Today's Expense (₹, optional)</label><input id="sessExpense" type="number" step="1"
+            placeholder="0"></div>
         <div class="fg"><label>Notes (optional)</label><input id="sessNotes" placeholder="Weather, observations…"></div>
       </div>
       <div class="btn-row">
@@ -2963,6 +3099,8 @@
     }
 
     // ── Auth ──────────────────────────────────────────────────────────────────
+    let _isSetupMode = false;
+
     async function checkAuthStatus() {
       try {
         const status = await api('GET', '/api/auth/status');
@@ -2980,24 +3118,87 @@
       const overlay = document.getElementById('authOverlay');
       overlay.classList.remove('hidden');
       overlay.classList.toggle('setup-mode', setupRequired);
+      _isSetupMode = setupRequired;
 
-      if (setupRequired && !document.querySelector('#qrContainer img')) {
-        api('POST', '/api/auth/setup', {}).then(data => {
-          const qc = document.getElementById('qrContainer');
-          qc.innerHTML = '';
-          const img = document.createElement('img');
-          img.src = data.qr_code;
-          img.alt = 'QR Code';
-          qc.appendChild(img);
-        }).catch((e) => {
-          toast(e.message || 'Setup is disabled', true);
-        });
+      // Show/hide the code input + submit button appropriately
+      const totpGroup = document.getElementById('totpInputGroup');
+      const submitBtn = document.getElementById('authSubmitBtn');
+
+      if (setupRequired) {
+        // Setup mode: show step 1 (name/email), hide others
+        document.getElementById('setupStep1').style.display = 'block';
+        document.getElementById('setupStep2').style.display = 'none';
+        document.getElementById('setupStep3').style.display = 'none';
+        totpGroup.style.display = 'none';
+        submitBtn.style.display = 'none';
+      } else {
+        // Login mode: show step 1 (username), hide totp step
+        document.getElementById('loginStep1').style.display = 'block';
+        document.getElementById('loginStep2').style.display = 'none';
+        totpGroup.style.display = 'none';
+        submitBtn.style.display = 'none';
+      }
+    }
+
+    function goSetupStep2() {
+      const name = document.getElementById('setupFullName').value.trim();
+      const email = document.getElementById('setupEmail').value.trim();
+      if (!name || !email) return toast('Please enter your name and email', true);
+
+      document.getElementById('setupStep1').style.display = 'none';
+      document.getElementById('setupStep2').style.display = 'block';
+    }
+
+    function goLoginStep2() {
+      const username = document.getElementById('loginUsername').value.trim();
+      if (!username) return toast('Please enter a username', true);
+
+      document.getElementById('loginStep1').style.display = 'none';
+      document.getElementById('loginStep2').style.display = 'block';
+      document.getElementById('totpInputGroup').style.display = 'block';
+      document.getElementById('authSubmitBtn').style.display = 'flex';
+      document.getElementById('totpCode').focus();
+    }
+
+    async function beginSetup() {
+      const username = document.getElementById('setupUsername').value.trim();
+      const fullName = document.getElementById('setupFullName').value.trim();
+      const email = document.getElementById('setupEmail').value.trim();
+      if (!username) return toast('Please enter a username', true);
+
+      try {
+        const data = await api('POST', '/api/auth/setup', { username, full_name: fullName, email });
+        // Show QR code
+        const qc = document.getElementById('qrContainer');
+        qc.innerHTML = '';
+        const img = document.createElement('img');
+        img.src = data.qr_code;
+        img.alt = 'QR Code';
+        qc.appendChild(img);
+
+        // Switch to step 3: show QR + code input
+        document.getElementById('setupStep2').style.display = 'none';
+        document.getElementById('setupStep3').style.display = 'block';
+        document.getElementById('totpInputGroup').style.display = 'block';
+        document.getElementById('authSubmitBtn').style.display = 'flex';
+        document.getElementById('totpCode').focus();
+      } catch (e) {
+        toast(e.message || 'Failed to start setup', true);
       }
     }
 
     function hideAuthOverlay() {
       document.getElementById('authOverlay').classList.add('hidden');
       document.getElementById('totpCode').value = '';
+      const setupUsername = document.getElementById('setupUsername');
+      if (setupUsername) setupUsername.value = '';
+      const loginUsername = document.getElementById('loginUsername');
+      if (loginUsername) loginUsername.value = '';
+      const setupFullName = document.getElementById('setupFullName');
+      if (setupFullName) setupFullName.value = '';
+      const setupEmail = document.getElementById('setupEmail');
+      if (setupEmail) setupEmail.value = '';
+      _isSetupMode = false;
     }
 
     async function handleAuthSubmit() {
@@ -3005,13 +3206,31 @@
       if (code.length !== 6) return toast('Please enter a 6-digit code', true);
 
       try {
-        await api('POST', '/api/auth/login', { code });
-        await fetchCsrfToken();
-        toast('✅ Authentication successful!');
+        if (_isSetupMode) {
+          // Two-phase setup: confirm the code to persist the secret
+          await api('POST', '/api/auth/setup/confirm', { code });
+          await fetchCsrfToken();
+          toast('✅ Setup complete! You are now authenticated.');
+        } else {
+          // Normal login
+          const username = document.getElementById('loginUsername').value.trim();
+          if (!username) return toast('Please enter a username', true);
+
+          await api('POST', '/api/auth/login', { username, code });
+          await fetchCsrfToken();
+          toast('✅ Authentication successful!');
+        }
         hideAuthOverlay();
         loadDashboard();
+
+        // After successful auth, fetch and update the farmer profile name
+        try {
+          const f = await api('GET', '/api/farmer');
+          document.getElementById('farmerName').textContent = f.name || f.username || 'Farmer';
+        } catch (e) { console.error('Failed to load profile name after auth', e); }
+
       } catch (e) {
-        toast(e.message || 'Invalid code', true);
+        toast(e.message || 'Invalid username or code', true);
       }
     }
 
@@ -3225,9 +3444,9 @@
             <div class="price-markets">
               <div class="price-market-title">Thanjavur Market Breakdown (${thanjavurMarkets.length} markets)</div>
               <div class="price-market-grid">${thanjavurMarkets.map(m => {
-                const label = cleanMarketLabel(m.market);
-                return `<div class="price-market-row"><span class="price-market-name">${label}</span><span class="price-market-rate">${fmtKg(m.price_kg)}</span></div>`;
-              }).join('')}</div>
+            const label = cleanMarketLabel(m.market);
+            return `<div class="price-market-row"><span class="price-market-name">${label}</span><span class="price-market-rate">${fmtKg(m.price_kg)}</span></div>`;
+          }).join('')}</div>
             </div>`;
         }
         renderProjectionChart(stats.harvest_projection || { labels: [], values: [] });
@@ -3813,7 +4032,7 @@
       }
     }
 
-        let _activeCompositions = [];
+    let _activeCompositions = [];
 
     async function initNewJobForm() {
       if (!Object.keys(S.catalogue).length) {
@@ -3997,7 +4216,7 @@
     }
 
     // ── Compositions ───────────────────────────────────────────────────────────
-        async function loadCompositions() {
+    async function loadCompositions() {
       if (!Object.keys(S.catalogue).length) {
         _fertCatalogue = await api('GET', '/api/fertilizer-catalogue');
         S.catalogue = _fertCatalogue;
@@ -4011,8 +4230,8 @@
         if (!comps.length) { el.innerHTML = '<div style="color:var(--fog);font-size:13px">No presets saved yet.</div>'; return; }
         el.innerHTML = `<table class="data-table"><thead><tr><th>Preset</th><th>Age Range</th><th>Fertilizers</th><th>Method</th><th>Updated</th><th></th></tr></thead><tbody>
     ${comps.map(c => {
-            const ferts = (c.fertilizers || []).map(f => `${f.fertilizer_label || f.fertilizer_type}: ${f.qty_per_tree} ${f.unit}/tree`).join('<br>');
-            return `<tr>
+          const ferts = (c.fertilizers || []).map(f => `${f.fertilizer_label || f.fertilizer_type}: ${f.qty_per_tree} ${f.unit}/tree`).join('<br>');
+          return `<tr>
       <td><span class="badge ba">${c.preset_name || 'Preset'}</span></td>
       <td style="font-family:'DM Mono',monospace">${c.age_min_years}-${c.age_max_years} yrs</td>
       <td style="font-size:12px">${ferts || '—'}</td>
@@ -4020,7 +4239,7 @@
       <td style="font-size:11px;color:var(--fog)">${(c.updated_at || '').slice(0, 10)}</td>
       <td><button class="btn btn-r" style="padding:3px 8px;font-size:11px" onclick="deleteComposition('${c.id}')">🗑</button></td>
     </tr>`;
-          }).join('')}</tbody></table>`;
+        }).join('')}</tbody></table>`;
       } catch (e) { toast(e.message, true); }
     }
 
@@ -4488,13 +4707,14 @@
 
       try {
         const f = await api('GET', '/api/farmer');
-        document.getElementById('farmerName').textContent = f ? f.name : 'Setup Profile →';
+        document.getElementById('farmerName').textContent = f.name || f.username || 'Farmer';
         if (f) S.farmerDistrict = f.district || f.village || '';
-      } catch { }
+      } catch (e) {
+        document.getElementById('farmerName').textContent = 'Profile';
+      }
       loadDashboard();
     })();
   </script>
 </body>
 
 </html>
-

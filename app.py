@@ -800,8 +800,6 @@ def check_auth():
     data = load_data()
     if not data.get("totp_secret"):
         _clear_auth_session()
-        if request.path == "/api/auth/setup":
-            return
         return err("Setup required", 401)
     # Check session
     if not _is_session_authenticated():
@@ -850,13 +848,22 @@ def auth_setup():
     if data.get("totp_secret"):
         return err("Setup already completed")
 
-    secret = pyotp.random_base32()
-    data["totp_secret"] = secret
-    save_data(data)
+    req_json = request.json or {}
+    username = str(req_json.get("username", "")).strip()
+    full_name = str(req_json.get("full_name", "")).strip()
+    email = str(req_json.get("email", "")).strip()
 
-    farmer = data.get("farmer", {})
-    name = farmer.get("name", "Farmer")
-    uri = pyotp.totp.TOTP(secret).provisioning_uri(name=name, issuer_name="CocoTrack")
+    if not username or not full_name or not email:
+        return err("Name, email, and username are required")
+
+    secret = pyotp.random_base32()
+    # Store pending secret and username in session
+    session["pending_totp_secret"] = secret
+    session["pending_username"] = username
+    session["pending_name"] = full_name
+    session["pending_email"] = email
+
+    uri = pyotp.totp.TOTP(secret).provisioning_uri(name=username, issuer_name="CocoTrack")
 
     img = qrcode.make(uri)
     buf = io.BytesIO()
@@ -865,10 +872,58 @@ def auth_setup():
 
     return ok({"qr_code": f"data:image/png;base64,{qr_b64}"})
 
+@app.route("/api/auth/setup/confirm", methods=["POST"])
+def auth_setup_confirm():
+    """Verify the user scanned the QR and can produce a valid code before persisting."""
+    data = load_data()
+    if data.get("totp_secret"):
+        return err("Setup already completed")
+
+    secret = session.get("pending_totp_secret")
+    username = session.get("pending_username")
+    full_name = session.get("pending_name")
+    email = session.get("pending_email")
+    if not secret or not username:
+        return err("No pending setup. Please start setup again.", 400)
+
+    code = str((request.json or {}).get("code", "")).strip()
+    if not code:
+        return err("Code required")
+
+    totp = pyotp.TOTP(secret)
+    if not totp.verify(code):
+        return err("Invalid code \u2014 make sure you scanned the QR code first", 401)
+
+    # Code is valid → persist the secret and user details
+    data["totp_secret"] = secret
+    data["username"] = username
+    
+    farmer = data.get("farmer") or {}
+    farmer["name"] = full_name
+    farmer["email"] = email
+    # ensure it exists
+    data["farmer"] = farmer
+    
+    save_data(data)
+    session.pop("pending_totp_secret", None)
+    session.pop("pending_username", None)
+    session.pop("pending_name", None)
+    session.pop("pending_email", None)
+
+    # Auto-authenticate the user
+    session["authenticated"] = True
+    session["username"] = username
+    session["auth_issued_at"] = datetime.utcnow().timestamp()
+    session["csrf_token"] = secrets.token_urlsafe(32)
+    session.permanent = True
+
+    return ok({"authenticated": True, "username": username})
+
 @app.route("/api/auth/login", methods=["POST"])
 def auth_login():
     data = load_data()
     secret = data.get("totp_secret")
+    stored_username = data.get("username", "")
     if not secret:
         return err("Setup required", 401)
 
@@ -876,22 +931,31 @@ def auth_login():
     if _is_login_rate_limited(ip):
         return err("Too many login attempts. Try again in 10 minutes.", 429)
 
-    code = str((request.json or {}).get("code", "")).strip()
-    if not code:
-        return err("Code required")
+    req_json = request.json or {}
+    username = str(req_json.get("username", "")).strip()
+    code = str(req_json.get("code", "")).strip()
+
+    if not username or not code:
+        return err("Username and code required")
+
+    # Verify both username (case-insensitive) and TOTP code
+    if username.lower() != stored_username.lower():
+        _record_login_attempt(ip)
+        return err("Invalid username or code", 401)
 
     totp = pyotp.TOTP(secret)
     if totp.verify(code):
         _login_attempts.pop(ip, None)
         session.clear()
         session["authenticated"] = True
+        session["username"] = stored_username
         session["auth_issued_at"] = datetime.utcnow().timestamp()
         session["csrf_token"] = secrets.token_urlsafe(32)
         session.permanent = True
-        return ok({"authenticated": True})
+        return ok({"authenticated": True, "username": stored_username})
 
     _record_login_attempt(ip)
-    return err("Invalid code", 401)
+    return err("Invalid username or code", 401)
 
 @app.route("/api/auth/logout", methods=["POST"])
 def auth_logout():
