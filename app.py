@@ -111,12 +111,18 @@ def handle_exception(e):
         return err(e.description, e.code)
     # Handle non-HTTP exceptions only
     import traceback
-    error_details = str(e)
+    
+    # Hide full server paths from the user
+    raw_error = str(e)
+    error_details = raw_error.replace("\\", "/").split("/")[-1]
+    
     # If it's a permission error specifically, give a helpful tip
     if isinstance(e, PermissionError):
-        error_details = f"Permission Denied: The server cannot write to {e.filename}. Please check file permissions on the server."
+        error_details = "Permission Denied: The server cannot write to the data file. Please check file permissions on the server."
+    elif isinstance(e, json.JSONDecodeError):
+        error_details = "Corrupted data file detected."
     
-    # Log the traceback to console for the developer
+    # Log the full traceback to console for the developer
     print(traceback.format_exc())
     return err(f"Internal Server Error: {error_details}", 500)
 
@@ -224,16 +230,23 @@ def _iter_strings(value):
 
 
 def _payload_has_unsafe_text(payload):
+    # Blocklist for common XSS vectors and sensitive tags
+    BLOCKLIST = [
+        "<script", "javascript:", "data:text/html", "onerror=", "onload=",
+        "onmouseover=", "onfocus=", "onclick=", "<img", "<iframe",
+        "<svg", "<object", "<embed", "<style", "<link", "<meta", "<base"
+    ]
     for s in _iter_strings(payload):
+        if not s: continue
         low = s.lower()
-        if len(s) > 5000:
+        if len(s) > 10000:
             return "Input too long"
         if "\x00" in s:
             return "Invalid characters in input"
-        if "<" in s or ">" in s:
-            return "HTML tags are not allowed"
-        if any(x in low for x in ("javascript:", "data:text/html", "onerror=", "onload=", "<script")):
+        if any(x in low for x in BLOCKLIST):
             return "Potentially unsafe input detected"
+        if "<" in s or ">" in s:
+            return "HTML tags are not allowed in fields"
     return None
 
 
@@ -1833,6 +1846,8 @@ def get_stats():
 
 if __name__ == "__main__":
     print("\nCocoTrack Web UI starting...")
-    print("   Open http://localhost:3333 in your browser\n")
-    app.run(debug=False, host=os.environ.get("HOST", "127.0.0.1"), port=3333)
+    target_host = os.environ.get("HOST", "100.97.107.183")
+    target_port = int(os.environ.get("PORT", 443))
+    print(f"   Open http://{target_host}:{target_port} in your browser\n")
+    app.run(debug=False, host=target_host, port=target_port)
 
