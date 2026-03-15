@@ -7,6 +7,14 @@ from flask import Flask, render_template, request, jsonify
 import sys, os, uuid, re, secrets, json, subprocess
 sys.path.insert(0, os.path.dirname(__file__))
 
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base_path, relative_path)
+
 from core import (
     load_data, save_data, generate_harvest_id,
     get_current_season, get_harvest_interval, detect_climate_from_location,
@@ -15,27 +23,25 @@ from core import (
     fetch_weather, rain_advisory,
 )
 from datetime import datetime, timedelta
-import pyotp, qrcode, io, base64
 from flask import session
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder=resource_path('templates'))
 app.secret_key = os.environ.get("FLASK_SECRET_KEY") or secrets.token_urlsafe(48)
-AUTH_SESSION_TTL_SECONDS = int(os.environ.get("AUTH_SESSION_TTL_SECONDS", "1800"))  # 30 minutes
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
-    SESSION_COOKIE_SECURE=os.environ.get("COOKIE_SECURE", "0") == "1",
-    SESSION_REFRESH_EACH_REQUEST=False,
-    PERMANENT_SESSION_LIFETIME=timedelta(seconds=AUTH_SESSION_TTL_SECONDS),
     MAX_CONTENT_LENGTH=262_144,
 )
 
-LOGIN_WINDOW_SECONDS = 10 * 60
-MAX_LOGIN_ATTEMPTS = 10
-_login_attempts = {}
+# When bundled, we save dynamic/writable data next to the EXE
+# Templates are bundled inside the EXE
+if getattr(sys, 'frozen', False):
+    DATA_DIR = os.path.dirname(sys.executable)
+else:
+    DATA_DIR = os.path.dirname(os.path.abspath(__file__))
 
-COCONUT_PRICE_FILE = os.path.join(os.path.dirname(__file__), "coconut_prices_latest.json")
-COCONUT_PRICE_SCRIPT = os.path.join(os.path.dirname(__file__), "coconut_price_scraper.py")
+COCONUT_PRICE_FILE = os.path.join(DATA_DIR, "coconut_prices_latest.json")
+COCONUT_PRICE_SCRIPT = resource_path("coconut_price_scraper.py")
 THANJAVUR_ALLOWED_MARKETS = {"tirukattupalli", "kumbakonam", "pattukottai"}
 
 COCONUT_PRICE_SNAPSHOT = {
@@ -253,40 +259,8 @@ def _payload_has_unsafe_text(payload):
 def _is_json_write_request():
     return request.path.startswith("/api/") and request.method in {"POST", "PUT", "PATCH"}
 
-
 def _is_mutating_request():
     return request.path.startswith("/api/") and request.method in {"POST", "PUT", "PATCH", "DELETE"}
-
-
-def _record_login_attempt(ip):
-    now = datetime.utcnow().timestamp()
-    attempts = [t for t in _login_attempts.get(ip, []) if now - t < LOGIN_WINDOW_SECONDS]
-    attempts.append(now)
-    _login_attempts[ip] = attempts
-
-
-def _is_login_rate_limited(ip):
-    now = datetime.utcnow().timestamp()
-    attempts = [t for t in _login_attempts.get(ip, []) if now - t < LOGIN_WINDOW_SECONDS]
-    _login_attempts[ip] = attempts
-    return len(attempts) >= MAX_LOGIN_ATTEMPTS
-
-
-def _is_session_authenticated():
-    if not session.get("authenticated"):
-        return False
-    issued_at = float(session.get("auth_issued_at", 0) or 0)
-    if not issued_at:
-        return False
-    if datetime.utcnow().timestamp() - issued_at > AUTH_SESSION_TTL_SECONDS:
-        return False
-    return True
-
-
-def _clear_auth_session():
-    session.pop("authenticated", None)
-    session.pop("auth_issued_at", None)
-    session.pop("csrf_token", None)
 
 
 
@@ -806,7 +780,7 @@ def index():
 
 # ─── Auth ────────────────────────────────────────────────────────────────────
 @app.before_request
-def check_auth():
+def security_checks():
     if _is_json_write_request():
         if not request.is_json:
             return err("JSON body required", 415)
@@ -816,25 +790,6 @@ def check_auth():
         unsafe = _payload_has_unsafe_text(body)
         if unsafe:
             return err(unsafe, 400)
-
-    if _is_mutating_request() and not request.path.startswith("/api/auth/"):
-        expected = session.get("csrf_token")
-        provided = request.headers.get("X-CSRF-Token", "")
-        if not expected or not secrets.compare_digest(expected, provided):
-            return err("CSRF validation failed", 403)
-
-    # Public paths
-    if request.path == "/" or request.path.startswith("/api/auth/"):
-        return
-    # Check if setup is needed
-    data = load_data()
-    if not data.get("totp_secret"):
-        _clear_auth_session()
-        return err("Setup required", 401)
-    # Check session
-    if not _is_session_authenticated():
-        _clear_auth_session()
-        return err("Auth required", 401)
 
 
 @app.after_request
@@ -852,144 +807,14 @@ def apply_security_headers(resp):
 
 @app.route("/api/auth/csrf", methods=["GET"])
 def auth_csrf():
-    if not _is_session_authenticated():
-        _clear_auth_session()
-        return err("Auth required", 401)
-    token = session.get("csrf_token")
-    if not token:
-        token = secrets.token_urlsafe(32)
-        session["csrf_token"] = token
-    return ok({"token": token})
+    return ok({"token": "disabled"})
 
 @app.route("/api/auth/status")
 def auth_status():
-    data = load_data()
-    setup_required = not bool(data.get("totp_secret"))
-    if setup_required:
-        _clear_auth_session()
-    return ok({
-        "setup_required": setup_required,
-        "authenticated": (not setup_required) and _is_session_authenticated()
-    })
-
-@app.route("/api/auth/setup", methods=["POST"])
-def auth_setup():
-    data = load_data()
-    if data.get("totp_secret"):
-        return err("Setup already completed")
-
-    req_json = request.json or {}
-    username = str(req_json.get("username", "")).strip()
-    full_name = str(req_json.get("full_name", "")).strip()
-    email = str(req_json.get("email", "")).strip()
-
-    if not username or not full_name or not email:
-        return err("Name, email, and username are required")
-
-    secret = pyotp.random_base32()
-    # Store pending secret and username in session
-    session["pending_totp_secret"] = secret
-    session["pending_username"] = username
-    session["pending_name"] = full_name
-    session["pending_email"] = email
-
-    uri = pyotp.totp.TOTP(secret).provisioning_uri(name=username, issuer_name="CocoTrack")
-
-    img = qrcode.make(uri)
-    buf = io.BytesIO()
-    img.save(buf)
-    qr_b64 = base64.b64encode(buf.getvalue()).decode()
-
-    return ok({"qr_code": f"data:image/png;base64,{qr_b64}"})
-
-@app.route("/api/auth/setup/confirm", methods=["POST"])
-def auth_setup_confirm():
-    """Verify the user scanned the QR and can produce a valid code before persisting."""
-    data = load_data()
-    if data.get("totp_secret"):
-        return err("Setup already completed")
-
-    secret = session.get("pending_totp_secret")
-    username = session.get("pending_username")
-    full_name = session.get("pending_name")
-    email = session.get("pending_email")
-    if not secret or not username:
-        return err("No pending setup. Please start setup again.", 400)
-
-    code = str((request.json or {}).get("code", "")).strip()
-    if not code:
-        return err("Code required")
-
-    totp = pyotp.TOTP(secret)
-    if not totp.verify(code):
-        return err("Invalid code \u2014 make sure you scanned the QR code first", 401)
-
-    # Code is valid → persist the secret and user details
-    data["totp_secret"] = secret
-    data["username"] = username
-    
-    farmer = data.get("farmer") or {}
-    farmer["name"] = full_name
-    farmer["email"] = email
-    # ensure it exists
-    data["farmer"] = farmer
-    
-    save_data(data)
-    session.pop("pending_totp_secret", None)
-    session.pop("pending_username", None)
-    session.pop("pending_name", None)
-    session.pop("pending_email", None)
-
-    # Auto-authenticate the user
-    session["authenticated"] = True
-    session["username"] = username
-    session["auth_issued_at"] = datetime.utcnow().timestamp()
-    session["csrf_token"] = secrets.token_urlsafe(32)
-    session.permanent = True
-
-    return ok({"authenticated": True, "username": username})
-
-@app.route("/api/auth/login", methods=["POST"])
-def auth_login():
-    data = load_data()
-    secret = data.get("totp_secret")
-    stored_username = data.get("username", "")
-    if not secret:
-        return err("Setup required", 401)
-
-    ip = (request.headers.get("X-Forwarded-For", request.remote_addr or "unknown").split(",")[0]).strip()
-    if _is_login_rate_limited(ip):
-        return err("Too many login attempts. Try again in 10 minutes.", 429)
-
-    req_json = request.json or {}
-    username = str(req_json.get("username", "")).strip()
-    code = str(req_json.get("code", "")).strip()
-
-    if not username or not code:
-        return err("Username and code required")
-
-    # Verify both username (case-insensitive) and TOTP code
-    if username.lower() != stored_username.lower():
-        _record_login_attempt(ip)
-        return err("Invalid username or code", 401)
-
-    totp = pyotp.TOTP(secret)
-    if totp.verify(code):
-        _login_attempts.pop(ip, None)
-        session.clear()
-        session["authenticated"] = True
-        session["username"] = stored_username
-        session["auth_issued_at"] = datetime.utcnow().timestamp()
-        session["csrf_token"] = secrets.token_urlsafe(32)
-        session.permanent = True
-        return ok({"authenticated": True, "username": stored_username})
-
-    _record_login_attempt(ip)
-    return err("Invalid username or code", 401)
+    return ok({"setup_required": False, "authenticated": True})
 
 @app.route("/api/auth/logout", methods=["POST"])
 def auth_logout():
-    _clear_auth_session()
     return ok({"authenticated": False})
 
 # ─── Farmer ───────────────────────────────────────────────────────────────────
@@ -1845,10 +1670,22 @@ def get_stats():
                "coconut_prices":_get_coconut_price_snapshot()})
 
 if __name__ == "__main__":
+    import webbrowser
+    import threading
+    import time
+
+    def open_browser():
+        # Wait a moment for server to start
+        time.sleep(1.5)
+        webbrowser.open("http://127.0.0.1:3333")
+
     print("\nCocoTrack Web UI starting...")
-    # Using 0.0.0.0 to listen on all available network interfaces
-    target_host = "0.0.0.0"
-    target_port = int(os.environ.get("PORT", 443))
-    print(f"   Open http://100.97.107.183:{target_port} in your browser\n")
+    target_host = "127.0.0.1"
+    target_port = 3333
+    
+    # Start browser thread
+    threading.Thread(target=open_browser, daemon=True).start()
+    
+    print(f"   Opening http://{target_host}:{target_port} in your browser...\n")
     app.run(debug=False, host=target_host, port=target_port)
 

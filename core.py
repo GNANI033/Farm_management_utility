@@ -192,7 +192,13 @@ def show_weather_for_location(data: dict):
         console.print("  [dim]Uses Open-Meteo API (free, no key required)[/dim]")
 
 # ─── Data Storage ────────────────────────────────────────────────────────────
-DATA_DIR  = Path(__file__).parent
+if getattr(sys, 'frozen', False):
+    # If the application is run as a bundle, the PyInstaller bootloader
+    # extends the sys module by a flag frozen=True and sets the app 
+    # path into variable _MEIPASS.
+    DATA_DIR = Path(sys.executable).parent
+else:
+    DATA_DIR = Path(__file__).parent
 # Allow overriding the data file path via environment variable (useful for production/Docker)
 DATA_FILE_ENV = os.environ.get("COCOTRACK_DATA_PATH")
 if DATA_FILE_ENV:
