@@ -1820,7 +1820,7 @@ def get_stats():
 
 # Track active sessions to auto-shutdown when browser is closed
 LAST_HEARTBEAT = time.time()
-SHUTDOWN_TIMEOUT = 300  # 5 minutes - very safe buffer
+SHUTDOWN_TIMEOUT = 1200  # 20 minutes - very safe buffer for user activity
 IDLE_SHUTDOWN_ENABLED = True
 
 @app.route('/api/heartbeat', methods=['POST'])
@@ -1834,10 +1834,10 @@ def heartbeat():
 def shutdown_watchdog():
     """Background thread that shuts down the app if no heartbeat is received."""
     global LAST_HEARTBEAT
-    # Giving plenty of time (1 minute) at startup
-    time.sleep(60) 
+    # Giving plenty of time (2 minutes) at startup
+    time.sleep(120) 
     while IDLE_SHUTDOWN_ENABLED:
-        time.sleep(15)
+        time.sleep(30)
         current_idle = time.time() - LAST_HEARTBEAT
         if current_idle > SHUTDOWN_TIMEOUT:
             print(f"\n[!] No active browser tab detected for {int(current_idle)}s. Shutting down...")

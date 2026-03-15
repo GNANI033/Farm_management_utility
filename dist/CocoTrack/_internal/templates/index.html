@@ -2257,6 +2257,7 @@
         <div class="nav-section">Analysis</div>
         <div class="nav-item" data-page="calculator"><span class="icon">💰</span> Sell Calculator</div>
         <div class="nav-item" data-page="predictions"><span class="icon">🔮</span> Predictions</div>
+        <div class="nav-item" data-page="copra"><span class="icon">🥥</span> Project Copra</div>
         <div class="nav-section">Account</div>
         <div class="nav-item" data-page="profile"><span class="icon">👨‍🌾</span> Profile</div>
         <div class="nav-item" data-page="settings"><span class="icon">⚙️</span> Settings</div>
@@ -2355,6 +2356,76 @@
             <div id="recentHarvests">
               <div class="loading">
                 <div class="spinner"></div>Loading…
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Project Copra -->
+        <div class="page" id="page-copra">
+          <div class="tabs">
+            <div class="tab active" data-tab="copra-list">All Projects</div>
+            <div class="tab" data-tab="copra-add">+ New Project</div>
+          </div>
+          <div id="tab-copra-list">
+            <div id="copraSummary"></div>
+            <div id="copraList">
+              <div class="loading">
+                <div class="spinner"></div>Loading…
+              </div>
+            </div>
+          </div>
+          <div id="tab-copra-add" style="display:none">
+            <div class="card">
+              <div class="card-title">🥥 New Copra Project</div>
+              <p style="font-size:12px;color:var(--fog);margin-bottom:14px">Track income by buying coconuts and selling as copra.</p>
+              <div class="form-grid">
+                <div class="fg"><label>Date *</label><input type="date" id="cpDate"></div>
+                <div class="fg"><label>Nuts Bought *</label><input type="number" id="cpNuts" placeholder="e.g. 5000"></div>
+                <div class="fg"><label>Purchase Cost (₹)</label><input type="number" id="cpCost" placeholder="e.g. 100000"></div>
+                <div class="fg">
+                  <label>Nut Type</label>
+                  <select id="cpType" onchange="toggleCopraTypeFields()">
+                    <option value="dehusked">Dehusked Nut</option>
+                    <option value="whole">Whole Nut</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div id="cpWholeFields" style="display:none; margin-top:10px; border-top:1px solid var(--card-border); padding-top:15px;">
+                <div class="form-grid">
+                  <div class="fg"><label>Dehusking Charges (₹)</label><input type="number" id="cpDehuskCost" placeholder="0"></div>
+                  <div class="fg"><label>Husk Income (₹)</label><input type="number" id="cpHuskIncome" placeholder="0"></div>
+                </div>
+              </div>
+
+              <div style="margin-top:20px; border-top:1px solid var(--card-border); padding-top:15px;">
+                <div class="form-grid c2">
+                  <div class="fg"><label>Shell Weight (kg)</label><input type="number" id="cpShellWeight" placeholder="0"></div>
+                  <div class="fg"><label>Shell Price (₹/kg)</label><input type="number" id="cpShellPrice" placeholder="0"></div>
+                </div>
+              </div>
+
+              <div style="margin-top:20px; border-top:1px solid var(--card-border); padding-top:15px;">
+                <div class="card-title" style="font-size:14px">Copra Grades Data</div>
+                <div class="form-grid c3">
+                  <div class="fg"><label>G1 Weight (kg)</label><input type="number" id="cpG1Weight" placeholder="0"></div>
+                  <div class="fg"><label>G1 Price (₹/kg)</label><input type="number" id="cpG1Price" placeholder="0"></div>
+                  <div class="fg" style="visibility:hidden"></div>
+                  
+                  <div class="fg"><label>G2 Weight (kg)</label><input type="number" id="cpG2Weight" placeholder="0"></div>
+                  <div class="fg"><label>G2 Price (₹/kg)</label><input type="number" id="cpG2Price" placeholder="0"></div>
+                  <div class="fg" style="visibility:hidden"></div>
+
+                  <div class="fg"><label>G3 Weight (kg)</label><input type="number" id="cpG3Weight" placeholder="0"></div>
+                  <div class="fg"><label>G3 Price (₹/kg)</label><input type="number" id="cpG3Price" placeholder="0"></div>
+                  <div class="fg" style="visibility:hidden"></div>
+                </div>
+              </div>
+
+              <div class="btn-row">
+                <button class="btn btn-p" onclick="addCopraProject()">✅ Save Project</button>
+                <button class="btn btn-g" onclick="switchTab('copra','copra-list')">Cancel</button>
               </div>
             </div>
           </div>
@@ -2889,10 +2960,16 @@
 
       const opts = { method, headers };
       if (body) opts.body = JSON.stringify(body);
-      const res = await fetch(path, opts);
+      let res;
+      try {
+        res = await fetch(path, opts);
+      } catch (e) {
+        console.error('Fetch error:', e);
+        throw new Error('Connection lost or server not running. Please restart the app.');
+      }
 
       if (res.status === 401 && !path.includes('/api/auth/')) {
-        checkAuthStatus(); // Re-check if session expired
+        checkAuthStatus();
         throw new Error('Authentication required');
       }
 
@@ -2915,7 +2992,7 @@
       dashboard: 'Dashboard',
       farms: 'Farms', harvests: 'Harvests', fertilizers: 'Fertilizers',
       expenses: 'Expense Manager', calculator: 'Sell Calculator', predictions: 'Yield Predictions',
-      profile: 'Farmer Profile', settings: 'Settings'
+      profile: 'Farmer Profile', settings: 'Settings', copra: 'Project Copra'
     };
     function setMobileMenu(open) {
       const sidebar = document.querySelector('.sidebar');
@@ -2962,6 +3039,7 @@
       if (p === 'profile') loadProfile();
       if (p === 'settings') loadSettings();
       if (p === 'calculator') loadCalcWeather();
+      if (p === 'copra') loadCopraProjects();
     }
 
     function getAlertKey(alert) {
@@ -4315,6 +4393,148 @@
         loadDashboard();
       } catch (e) { toast(e.message, true); }
     }
+
+    // ── Project Copra ──────────────────────────────────────────────────────────
+    function toggleCopraTypeFields() {
+      const type = document.getElementById('cpType').value;
+      document.getElementById('cpWholeFields').style.display = type === 'whole' ? 'block' : 'none';
+    }
+
+    async function loadCopraProjects() {
+      const el = document.getElementById('copraList');
+      const summaryEl = document.getElementById('copraSummary');
+      try {
+        const data = await api('GET', '/api/copra-projects');
+        const projects = data.projects || [];
+        const stats = data.stats || {};
+
+        if (!projects.length) {
+          summaryEl.innerHTML = '';
+          el.innerHTML = '<div class="card" style="color:var(--fog);font-size:13px">No copra projects yet. Click "+ New Project".</div>';
+          return;
+        }
+
+        // Render Summary Card
+        const buildDiff = (val, label) => {
+          if (val === undefined) return '';
+          const cls = val > 0 ? 'ti' : (val < 0 ? 'td' : 'fog');
+          const symbol = val > 0 ? '↑' : (val < 0 ? '↓' : '→');
+          return `<div class="${cls}" style="font-size:11px">${symbol} ${Math.abs(val)}% ${label}</div>`;
+        };
+
+        summaryEl.innerHTML = `<div class="card" style="margin-bottom:20px; border-left:4px solid var(--lime)">
+          <div class="card-title" style="margin-bottom:15px">📈 Projects Summary</div>
+          <div class="stats-row">
+            <div class="stat-card">
+              <div class="stat-label">Revenue</div>
+              <div class="stat-value" style="color:var(--lime); font-size:24px">${fmt(stats.total_revenue)}</div>
+              <div style="margin-top:8px">
+                ${buildDiff(stats.mom?.revenue_diff, 'MoM')}
+                ${buildDiff(stats.yoy?.revenue_diff, 'YoY')}
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Total Profit</div>
+              <div class="stat-value" style="color:white; font-size:24px">${fmt(stats.total_profit)}</div>
+              <div style="margin-top:8px">
+                ${buildDiff(stats.mom?.profit_diff, 'MoM')}
+                ${buildDiff(stats.yoy?.profit_diff, 'YoY')}
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Nuts Processed</div>
+              <div class="stat-value" style="color:var(--amber); font-size:24px">${stats.total_nuts.toLocaleString()}</div>
+              <div style="margin-top:8px">
+                ${buildDiff(stats.mom?.nuts_diff, 'MoM')}
+                ${buildDiff(stats.yoy?.nuts_diff, 'YoY')}
+              </div>
+            </div>
+          </div>
+        </div>`;
+
+        if (isMobileView()) {
+          el.innerHTML = projects.map(p => `<div class="mobile-list-card" key="${p.id}">
+            <div class="mobile-list-head">
+              <div class="mobile-list-title">${p.date} (${p.nuts_bought} nuts)</div>
+              <span class="badge ${p.profit >= 0 ? 'bg' : 'br'}">${fmt(p.profit)}</span>
+            </div>
+            <div class="mobile-kv">
+              <div><div class="mobile-k">Type</div><div class="mobile-v">${p.type === 'whole' ? 'Whole Nut' : 'Dehusked'}</div></div>
+              <div><div class="mobile-k">Revenue</div><div class="mobile-v" style="color:var(--lime)">${fmt(p.revenue)}</div></div>
+              <div><div class="mobile-k">Expense</div><div class="mobile-v" style="color:var(--amber)">${fmt(p.expenses)}</div></div>
+            </div>
+            <div class="mobile-actions">
+              <button class="btn btn-r" onclick="deleteCopraProject('${p.id}')">🗑 Delete</button>
+            </div>
+          </div>`).join('');
+          return;
+        }
+
+        el.innerHTML = `<table class="data-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Nuts</th>
+              <th>Type</th>
+              <th>Revenue</th>
+              <th>Expense</th>
+              <th>Profit</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${projects.map(p => `<tr>
+              <td>${p.date}</td>
+              <td>${p.nuts_bought.toLocaleString()}</td>
+              <td><span class="badge ba">${p.type}</span></td>
+              <td style="color:var(--lime)">${fmt(p.revenue)}</td>
+              <td style="color:var(--amber)">${fmt(p.expenses)}</td>
+              <td style="font-weight:600; color:${p.profit >= 0 ? 'var(--lime)' : '#e05c4b'}">${fmt(p.profit)}</td>
+              <td><button class="btn btn-r" style="padding:4px 10px;font-size:11px" onclick="deleteCopraProject('${p.id}')">🗑 Delete</button></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>`;
+      } catch (e) { toast(e.message, true); }
+    }
+
+    async function addCopraProject() {
+      const b = {
+        date: document.getElementById('cpDate').value,
+        nuts_bought: parseInt(document.getElementById('cpNuts').value),
+        purchase_cost: parseFloat(document.getElementById('cpCost').value) || 0,
+        type: document.getElementById('cpType').value,
+        dehusking_cost: parseFloat(document.getElementById('cpDehuskCost').value) || 0,
+        husk_income: parseFloat(document.getElementById('cpHuskIncome').value) || 0,
+        shell_weight: parseFloat(document.getElementById('cpShellWeight').value) || 0,
+        shell_price: parseFloat(document.getElementById('cpShellPrice').value) || 0,
+        g1_weight: parseFloat(document.getElementById('cpG1Weight').value) || 0,
+        g1_price: parseFloat(document.getElementById('cpG1Price').value) || 0,
+        g2_weight: parseFloat(document.getElementById('cpG2Weight').value) || 0,
+        g2_price: parseFloat(document.getElementById('cpG2Price').value) || 0,
+        g3_weight: parseFloat(document.getElementById('cpG3Weight').value) || 0,
+        g3_price: parseFloat(document.getElementById('cpG3Price').value) || 0
+      };
+
+      if (!b.date || !b.nuts_bought) return toast('Date and Nuts Bought are required', true);
+
+      try {
+        await api('POST', '/api/copra-projects', b);
+        toast('✅ Project saved');
+        switchTab('copra', 'copra-list');
+        loadCopraProjects();
+        loadDashboard();
+      } catch (e) { toast(e.message, true); }
+    }
+
+    async function deleteCopraProject(id) {
+      if (!confirm('Delete this project?')) return;
+      try {
+        await api('DELETE', `/api/copra-projects/${id}`);
+        toast('🗑 Project deleted');
+        loadCopraProjects();
+        loadDashboard();
+      } catch (e) { toast(e.message, true); }
+    }
     // ── Predictions ────────────────────────────────────────────────────────────
     async function loadPredictions() {
       const el = document.getElementById('predContent');
@@ -4447,6 +4667,7 @@
       harvest_interval_nonsummer_lo: 'Harvest cycle (non-summer) start day',
       harvest_interval_nonsummer_hi: 'Harvest cycle (non-summer) end day',
       fertilizer_interval_days: 'Fertilizer re-application interval (days)',
+      include_copra_projects_in_dashboard: 'Include "Project Copra" in Dashboard (1=Yes, 0=No)',
     };
 
     async function loadSettings() {
@@ -4480,6 +4701,7 @@
     // ── Init ────────────────────────────────────────────────────────────────────
     (async () => {
       document.getElementById('hDate').value = today();
+      document.getElementById('cpDate').value = today();
       try {
         const f = await api('GET', '/api/farmer');
         document.getElementById('farmerName').textContent = f.name || f.username || 'Farmer';
@@ -4493,7 +4715,9 @@
       // If the browser tab is closed, the backend stops receiving these
       // and will automatically shut down after ~12 seconds.
       setInterval(() => {
-        fetch('/api/heartbeat', { method: 'POST' }).catch(() => {});
+        fetch('/api/heartbeat', { method: 'POST' }).catch(() => {
+           console.warn('Heartbeat failed');
+        });
       }, 5000);
     })();
   </script>
