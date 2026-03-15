@@ -15,6 +15,8 @@ def resource_path(relative_path):
         base_path = os.path.dirname(os.path.abspath(__file__))
     return os.path.join(base_path, relative_path)
 
+import coconut_price_scraper
+
 from core import (
     load_data, save_data, generate_harvest_id,
     get_current_season, get_harvest_interval, detect_climate_from_location,
@@ -201,27 +203,34 @@ def _get_coconut_price_snapshot():
     return json.loads(json.dumps(COCONUT_PRICE_SNAPSHOT))
 
 
-def _refresh_coconut_price_snapshot():
-    base = os.path.splitext(COCONUT_PRICE_FILE)[0]
-    env = os.environ.copy()
-    env["PYTHONIOENCODING"] = "utf-8"
-    proc = subprocess.run(
-        [sys.executable, COCONUT_PRICE_SCRIPT, "--export", "json", "--output", base],
-        cwd=os.path.dirname(__file__),
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        timeout=180,
-        env=env,
-    )
-    if proc.returncode != 0:
-        msg = (proc.stderr or proc.stdout or "Price refresh failed").strip()
-        raise RuntimeError(msg)
-    if not os.path.exists(COCONUT_PRICE_FILE):
-        raise RuntimeError("Price file was not generated")
     with open(COCONUT_PRICE_FILE, "r", encoding="utf-8") as f:
         return _normalize_coconut_price_payload(json.load(f))
+
+
+def _refresh_coconut_price_snapshot():
+    """
+    Refresh prices by calling the scraper logic directly.
+    We avoid subprocess.run([sys.executable, ...]) because in a bundled EXE,
+    sys.executable is the EXE itself, and running it again spawns a new app instance
+    (and a new browser tab).
+    """
+    try:
+        # Mocking sys.argv to pass arguments to the scraper's main
+        base = os.path.splitext(COCONUT_PRICE_FILE)[0]
+        import argparse
+        from unittest.mock import patch
+        
+        args = ["coconut_price_scraper.py", "--export", "json", "--output", base]
+        with patch("sys.argv", args):
+            coconut_price_scraper.main()
+            
+        if not os.path.exists(COCONUT_PRICE_FILE):
+            raise RuntimeError("Price file was not generated")
+            
+        with open(COCONUT_PRICE_FILE, "r", encoding="utf-8") as f:
+            return _normalize_coconut_price_payload(json.load(f))
+    except Exception as e:
+        raise RuntimeError(f"Scraper failed: {e}")
 
 
 def _iter_strings(value):
@@ -1669,10 +1678,36 @@ def get_stats():
                "predictions":preds,
                "coconut_prices":_get_coconut_price_snapshot()})
 
+# Track active sessions to auto-shutdown when browser is closed
+LAST_HEARTBEAT = time.time()
+SHUTDOWN_TIMEOUT = 12  # Seconds before shutting down if no heartbeat
+IDLE_SHUTDOWN_ENABLED = True
+
+@app.route('/api/heartbeat', methods=['POST'])
+def heartbeat():
+    global LAST_HEARTBEAT
+    LAST_HEARTBEAT = time.time()
+    return jsonify({"ok": True})
+
+
+def shutdown_watchdog():
+    """Background thread that shuts down the app if no heartbeat is received."""
+    global LAST_HEARTBEAT
+    # Giving extra time at startup
+    time.sleep(15) 
+    while IDLE_SHUTDOWN_ENABLED:
+        time.sleep(5)
+        if time.time() - LAST_HEARTBEAT > SHUTDOWN_TIMEOUT:
+            print("\n[!] No active browser tab detected. Shutting down CocoTrack...")
+            os._exit(0)
+
 if __name__ == "__main__":
+    import multiprocessing
+    multiprocessing.freeze_support()
     import webbrowser
     import threading
     import time
+    import os
 
     def open_browser():
         # Wait a moment for server to start
@@ -1685,6 +1720,9 @@ if __name__ == "__main__":
     
     # Start browser thread
     threading.Thread(target=open_browser, daemon=True).start()
+    
+    # Start shutdown watchdog thread
+    threading.Thread(target=shutdown_watchdog, daemon=True).start()
     
     print(f"   Opening http://{target_host}:{target_port} in your browser...\n")
     app.run(debug=False, host=target_host, port=target_port)

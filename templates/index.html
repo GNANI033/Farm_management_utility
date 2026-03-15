@@ -4488,6 +4488,13 @@
         document.getElementById('farmerName').textContent = 'Profile';
       }
       loadDashboard();
+      
+      // Auto-shutdown heartbeat: sends a pulse every 5 seconds
+      // If the browser tab is closed, the backend stops receiving these
+      // and will automatically shut down after ~12 seconds.
+      setInterval(() => {
+        fetch('/api/heartbeat', { method: 'POST' }).catch(() => {});
+      }, 5000);
     })();
   </script>
 </body>
