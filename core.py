@@ -202,11 +202,29 @@ else:
 
 def load_data() -> dict:
     DATA_DIR.mkdir(exist_ok=True)
+    
+    # Try loading primary data file
     if DATA_FILE.exists():
-        with open(DATA_FILE, "r") as f:
-            d = json.load(f)
+        try:
+            with open(DATA_FILE, "r", encoding="utf-8") as f:
+                d = json.load(f)
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            print(f"CRITICAL: {DATA_FILE} is corrupted! Attempting recovery...")
+            # Fallback to backup if it exists
+            backup = DATA_FILE.with_name("data_backup_userfile_do_not delete.text")
+            if backup.exists():
+                try:
+                    with open(backup, "r", encoding="utf-8") as f:
+                        d = json.load(f)
+                    print("Recovery successful from backup file.")
+                except Exception:
+                    print("Recovery failed. Starting with empty data.")
+                    d = {}
+            else:
+                d = {}
     else:
         d = {}
+    
     # Ensure all keys exist (backwards-compatible with Phase 1 saves)
     d.setdefault("farmer",      None)
     d.setdefault("farms",       [])
@@ -218,8 +236,26 @@ def load_data() -> dict:
 
 def save_data(data: dict):
     DATA_DIR.mkdir(exist_ok=True)
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f, indent=2, default=str)
+    
+    # Atomic write: write to temp file then rename
+    temp_file = DATA_FILE.with_suffix(".tmp")
+    try:
+        with open(temp_file, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, default=str)
+        
+        # On some systems, os.replace is safer for atomic operations
+        os.replace(temp_file, DATA_FILE)
+        
+        # Update backup
+        backup = DATA_FILE.with_name("data_backup_userfile_do_not delete.text")
+        with open(backup, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, default=str)
+            
+    except Exception as e:
+        if temp_file.exists():
+            try: os.remove(temp_file)
+            except: pass
+        raise e
 
 # ─── Harvest ID Generator ─────────────────────────────────────────────────────
 def generate_harvest_id(data: dict) -> str:
