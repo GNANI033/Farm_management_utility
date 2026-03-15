@@ -104,6 +104,23 @@ def err(msg, code=400):
     return jsonify({"ok": False, "error": msg}), code
 
 
+@app.errorhandler(Exception)
+def handle_exception(e):
+    # Pass through HTTP errors
+    if hasattr(e, "code") and hasattr(e, "description"):
+        return err(e.description, e.code)
+    # Handle non-HTTP exceptions only
+    import traceback
+    error_details = str(e)
+    # If it's a permission error specifically, give a helpful tip
+    if isinstance(e, PermissionError):
+        error_details = f"Permission Denied: The server cannot write to {e.filename}. Please check file permissions on the server."
+    
+    # Log the traceback to console for the developer
+    print(traceback.format_exc())
+    return err(f"Internal Server Error: {error_details}", 500)
+
+
 def _normalize_market_name(name):
     base = (name or "").split("(")[0].strip().lower()
     return re.sub(r"\s+", " ", base)

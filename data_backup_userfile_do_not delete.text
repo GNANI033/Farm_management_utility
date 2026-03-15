@@ -1,0 +1,952 @@
+{
+  "farmer": {
+    "name": "Ramesh",
+    "phone": "6369034166",
+    "email": "",
+    "village": "Nadiam",
+    "district": "Thanjavur",
+    "state": "Tamil Nadu",
+    "climate_type": "tropical",
+    "joined": "2026-03-08T15:31:03.802877"
+  },
+  "farms": [
+    {
+      "name": "Veetuvasal",
+      "location": "Nadiam",
+      "area_acres": 1.27,
+      "num_trees": 95,
+      "tree_age_years": 15,
+      "soil_type": "loamy",
+      "water_source": "borewell",
+      "intercropping": false,
+      "intercrop_names": "Banana, Mango",
+      "intercrop_area": 0,
+      "id": "FARM001",
+      "crop_type": "coconut",
+      "added_on": "2026-03-08T20:00:33.584823"
+    },
+    {
+      "name": "Bore kollai-GR",
+      "location": "Thandamarakadu",
+      "area_acres": 1.93,
+      "num_trees": 144,
+      "tree_age_years": 25,
+      "soil_type": "loamy",
+      "water_source": "borewell",
+      "intercropping": false,
+      "intercrop_names": "",
+      "intercrop_area": 0,
+      "id": "FARM002",
+      "crop_type": "coconut",
+      "added_on": "2026-03-08T20:03:11.324574"
+    },
+    {
+      "name": "Bore kollai-Gm",
+      "location": "Thandamarakadu",
+      "area_acres": 1.92,
+      "num_trees": 144,
+      "tree_age_years": 25,
+      "soil_type": "loamy",
+      "water_source": "borewell",
+      "intercropping": false,
+      "intercrop_names": "",
+      "intercrop_area": 0,
+      "id": "FARM003",
+      "crop_type": "coconut",
+      "added_on": "2026-03-08T20:04:05.270538"
+    },
+    {
+      "name": "Palani veetuvasal",
+      "location": "Thandamarakadu",
+      "area_acres": 1.92,
+      "num_trees": 98,
+      "tree_age_years": 25,
+      "soil_type": "loamy",
+      "water_source": "borewell",
+      "intercropping": false,
+      "intercrop_names": "",
+      "intercrop_area": 0,
+      "id": "FARM004",
+      "crop_type": "coconut",
+      "added_on": "2026-03-08T20:05:14.721270"
+    },
+    {
+      "name": "Nadar veetuvasal",
+      "location": "Thandamarakadu",
+      "area_acres": 1.92,
+      "num_trees": 78,
+      "tree_age_years": 25,
+      "soil_type": "loamy",
+      "water_source": "borewell",
+      "intercropping": false,
+      "intercrop_names": "",
+      "intercrop_area": 0,
+      "id": "FARM005",
+      "crop_type": "coconut",
+      "added_on": "2026-03-08T20:06:05.442194"
+    },
+    {
+      "name": "KVR Thopu",
+      "location": "Thandamarakadu",
+      "area_acres": 1.92,
+      "num_trees": 135,
+      "tree_age_years": 25,
+      "soil_type": "loamy",
+      "water_source": "borewell",
+      "intercropping": false,
+      "intercrop_names": "",
+      "intercrop_area": 0,
+      "id": "FARM006",
+      "crop_type": "coconut",
+      "added_on": "2026-03-08T20:07:03.738150"
+    },
+    {
+      "name": "Karumbu kollai",
+      "location": "Nadiam",
+      "area_acres": 2.03,
+      "num_trees": 152,
+      "tree_age_years": 25,
+      "soil_type": "loamy",
+      "water_source": "borewell",
+      "intercropping": false,
+      "intercrop_names": "",
+      "intercrop_area": 0,
+      "id": "FARM007",
+      "crop_type": "coconut",
+      "added_on": "2026-03-08T20:08:09.348579"
+    },
+    {
+      "name": "Savukku kollai",
+      "location": "Nadiam",
+      "area_acres": 2.2,
+      "num_trees": 165,
+      "tree_age_years": 5,
+      "soil_type": "loamy",
+      "water_source": "borewell",
+      "intercropping": false,
+      "intercrop_names": "",
+      "intercrop_area": 0,
+      "id": "FARM008",
+      "crop_type": "coconut",
+      "added_on": "2026-03-08T20:09:30.832311"
+    }
+  ],
+  "harvests": [
+    {
+      "harvest_id": "HRV-2026-001",
+      "harvest_date": "2024-09-12",
+      "farms": [
+        {
+          "farm_id": "FARM001",
+          "farm_name": "Veetuvasal",
+          "num_trees": 95,
+          "nuts_harvested": 1050,
+          "defective_nuts": 0,
+          "good_nuts": 1050,
+          "nuts_per_tree": 11.05
+        },
+        {
+          "farm_id": "FARM002",
+          "farm_name": "Bore kollai-GR",
+          "num_trees": 144,
+          "nuts_harvested": 2170,
+          "defective_nuts": 0,
+          "good_nuts": 2170,
+          "nuts_per_tree": 15.07
+        },
+        {
+          "farm_id": "FARM003",
+          "farm_name": "Bore kollai-Gm",
+          "num_trees": 144,
+          "nuts_harvested": 800,
+          "defective_nuts": 0,
+          "good_nuts": 800,
+          "nuts_per_tree": 5.56
+        },
+        {
+          "farm_id": "FARM004",
+          "farm_name": "Palani veetuvasal",
+          "num_trees": 98,
+          "nuts_harvested": 715,
+          "defective_nuts": 0,
+          "good_nuts": 715,
+          "nuts_per_tree": 7.3
+        },
+        {
+          "farm_id": "FARM005",
+          "farm_name": "Nadar veetuvasal",
+          "num_trees": 78,
+          "nuts_harvested": 1300,
+          "defective_nuts": 0,
+          "good_nuts": 1300,
+          "nuts_per_tree": 16.67
+        },
+        {
+          "farm_id": "FARM006",
+          "farm_name": "KVR Thopu",
+          "num_trees": 135,
+          "nuts_harvested": 1250,
+          "defective_nuts": 0,
+          "good_nuts": 1250,
+          "nuts_per_tree": 9.26
+        },
+        {
+          "farm_id": "FARM007",
+          "farm_name": "Karumbu kollai",
+          "num_trees": 152,
+          "nuts_harvested": 1500,
+          "defective_nuts": 0,
+          "good_nuts": 1500,
+          "nuts_per_tree": 9.87
+        }
+      ],
+      "sale_mode": "sold_per_pcs",
+      "sale_details": {
+        "price_per_nut": 25.0,
+        "actual_nuts_sold": 8785
+      },
+      "selling_price": 25.0,
+      "labour_cost": 8200,
+      "transport_cost": 4300,
+      "other_expenses": 750,
+      "notes": "(Bulk Entry)",
+      "logged_at": "2026-03-11T04:47:55.120067",
+      "last_edited": "2026-03-11T05:05:54.345548",
+      "nuts_harvested": 8785,
+      "defective_nuts": 0,
+      "good_nuts": 8785,
+      "nuts_per_tree": 10.38,
+      "farm_count": 7,
+      "farm_names": "Veetuvasal, Bore kollai-GR, Bore kollai-Gm, Palani veetuvasal, Nadar veetuvasal, KVR Thopu, Karumbu kollai",
+      "revenue": 219625.0,
+      "total_expenses": 13250.0,
+      "profit": 206375.0,
+      "season": "monsoon",
+      "next_harvest_from": "2024-11-11",
+      "next_harvest_to": "2024-11-26"
+    },
+    {
+      "harvest_id": "HRV-2026-002",
+      "harvest_date": "2025-02-17",
+      "farms": [
+        {
+          "farm_id": "FARM001",
+          "farm_name": "Veetuvasal",
+          "num_trees": 95,
+          "nuts_harvested": 900,
+          "defective_nuts": 0,
+          "good_nuts": 900,
+          "nuts_per_tree": 9.47
+        },
+        {
+          "farm_id": "FARM002",
+          "farm_name": "Bore kollai-GR",
+          "num_trees": 144,
+          "nuts_harvested": 2360,
+          "defective_nuts": 0,
+          "good_nuts": 2360,
+          "nuts_per_tree": 16.39
+        },
+        {
+          "farm_id": "FARM003",
+          "farm_name": "Bore kollai-Gm",
+          "num_trees": 144,
+          "nuts_harvested": 890,
+          "defective_nuts": 0,
+          "good_nuts": 890,
+          "nuts_per_tree": 6.18
+        },
+        {
+          "farm_id": "FARM004",
+          "farm_name": "Palani veetuvasal",
+          "num_trees": 98,
+          "nuts_harvested": 680,
+          "defective_nuts": 0,
+          "good_nuts": 680,
+          "nuts_per_tree": 6.94
+        },
+        {
+          "farm_id": "FARM005",
+          "farm_name": "Nadar veetuvasal",
+          "num_trees": 78,
+          "nuts_harvested": 1000,
+          "defective_nuts": 0,
+          "good_nuts": 1000,
+          "nuts_per_tree": 12.82
+        },
+        {
+          "farm_id": "FARM006",
+          "farm_name": "KVR Thopu",
+          "num_trees": 135,
+          "nuts_harvested": 1580,
+          "defective_nuts": 0,
+          "good_nuts": 1580,
+          "nuts_per_tree": 11.7
+        },
+        {
+          "farm_id": "FARM007",
+          "farm_name": "Karumbu kollai",
+          "num_trees": 152,
+          "nuts_harvested": 1600,
+          "defective_nuts": 0,
+          "good_nuts": 1600,
+          "nuts_per_tree": 10.53
+        }
+      ],
+      "sale_mode": "sold_per_pcs",
+      "sale_details": {
+        "price_per_nut": 25.25,
+        "actual_nuts_sold": 9010
+      },
+      "selling_price": 25.25,
+      "labour_cost": 8200,
+      "transport_cost": 4500,
+      "other_expenses": 980,
+      "notes": "(Bulk Entry)",
+      "logged_at": "2026-03-11T04:49:15.459274",
+      "last_edited": "2026-03-11T05:06:11.745450",
+      "nuts_harvested": 9010,
+      "defective_nuts": 0,
+      "good_nuts": 9010,
+      "nuts_per_tree": 10.65,
+      "farm_count": 7,
+      "farm_names": "Veetuvasal, Bore kollai-GR, Bore kollai-Gm, Palani veetuvasal, Nadar veetuvasal, KVR Thopu, Karumbu kollai",
+      "revenue": 227502.5,
+      "total_expenses": 13680.0,
+      "profit": 213822.5,
+      "season": "winter",
+      "next_harvest_from": "2025-04-18",
+      "next_harvest_to": "2025-05-03"
+    },
+    {
+      "harvest_id": "HRV-2026-003",
+      "harvest_date": "2025-04-13",
+      "farms": [
+        {
+          "farm_id": "FARM001",
+          "farm_name": "Veetuvasal",
+          "num_trees": 95,
+          "nuts_harvested": 740,
+          "defective_nuts": 0,
+          "good_nuts": 740,
+          "nuts_per_tree": 7.79
+        },
+        {
+          "farm_id": "FARM002",
+          "farm_name": "Bore kollai-GR",
+          "num_trees": 144,
+          "nuts_harvested": 1580,
+          "defective_nuts": 0,
+          "good_nuts": 1580,
+          "nuts_per_tree": 10.97
+        },
+        {
+          "farm_id": "FARM003",
+          "farm_name": "Bore kollai-Gm",
+          "num_trees": 144,
+          "nuts_harvested": 730,
+          "defective_nuts": 0,
+          "good_nuts": 730,
+          "nuts_per_tree": 5.07
+        },
+        {
+          "farm_id": "FARM004",
+          "farm_name": "Palani veetuvasal",
+          "num_trees": 98,
+          "nuts_harvested": 570,
+          "defective_nuts": 0,
+          "good_nuts": 570,
+          "nuts_per_tree": 5.82
+        },
+        {
+          "farm_id": "FARM005",
+          "farm_name": "Nadar veetuvasal",
+          "num_trees": 78,
+          "nuts_harvested": 800,
+          "defective_nuts": 0,
+          "good_nuts": 800,
+          "nuts_per_tree": 10.26
+        },
+        {
+          "farm_id": "FARM006",
+          "farm_name": "KVR Thopu",
+          "num_trees": 135,
+          "nuts_harvested": 750,
+          "defective_nuts": 0,
+          "good_nuts": 750,
+          "nuts_per_tree": 5.56
+        },
+        {
+          "farm_id": "FARM007",
+          "farm_name": "Karumbu kollai",
+          "num_trees": 152,
+          "nuts_harvested": 1050,
+          "defective_nuts": 0,
+          "good_nuts": 1050,
+          "nuts_per_tree": 6.91
+        }
+      ],
+      "sale_mode": "sold_per_pcs",
+      "sale_details": {
+        "price_per_nut": 25.75,
+        "actual_nuts_sold": 6220
+      },
+      "selling_price": 25.75,
+      "labour_cost": 5800,
+      "transport_cost": 3000,
+      "other_expenses": 765,
+      "notes": "(Bulk Entry)",
+      "logged_at": "2026-03-11T04:51:00.624160",
+      "last_edited": "2026-03-11T05:06:33.545616",
+      "nuts_harvested": 6220,
+      "defective_nuts": 0,
+      "good_nuts": 6220,
+      "nuts_per_tree": 7.35,
+      "farm_count": 7,
+      "farm_names": "Veetuvasal, Bore kollai-GR, Bore kollai-Gm, Palani veetuvasal, Nadar veetuvasal, KVR Thopu, Karumbu kollai",
+      "revenue": 160165.0,
+      "total_expenses": 9565.0,
+      "profit": 150600.0,
+      "season": "summer",
+      "next_harvest_from": "2025-05-18",
+      "next_harvest_to": "2025-05-28"
+    },
+    {
+      "harvest_id": "HRV-2026-004",
+      "harvest_date": "2025-06-02",
+      "farms": [
+        {
+          "farm_id": "FARM001",
+          "farm_name": "Veetuvasal",
+          "num_trees": 95,
+          "nuts_harvested": 900,
+          "defective_nuts": 0,
+          "good_nuts": 900,
+          "nuts_per_tree": 9.47
+        },
+        {
+          "farm_id": "FARM002",
+          "farm_name": "Bore kollai-GR",
+          "num_trees": 144,
+          "nuts_harvested": 1550,
+          "defective_nuts": 0,
+          "good_nuts": 1550,
+          "nuts_per_tree": 10.76
+        },
+        {
+          "farm_id": "FARM003",
+          "farm_name": "Bore kollai-Gm",
+          "num_trees": 144,
+          "nuts_harvested": 630,
+          "defective_nuts": 0,
+          "good_nuts": 630,
+          "nuts_per_tree": 4.38
+        },
+        {
+          "farm_id": "FARM004",
+          "farm_name": "Palani veetuvasal",
+          "num_trees": 98,
+          "nuts_harvested": 660,
+          "defective_nuts": 0,
+          "good_nuts": 660,
+          "nuts_per_tree": 6.73
+        },
+        {
+          "farm_id": "FARM005",
+          "farm_name": "Nadar veetuvasal",
+          "num_trees": 78,
+          "nuts_harvested": 900,
+          "defective_nuts": 0,
+          "good_nuts": 900,
+          "nuts_per_tree": 11.54
+        },
+        {
+          "farm_id": "FARM006",
+          "farm_name": "KVR Thopu",
+          "num_trees": 135,
+          "nuts_harvested": 1000,
+          "defective_nuts": 0,
+          "good_nuts": 1000,
+          "nuts_per_tree": 7.41
+        },
+        {
+          "farm_id": "FARM007",
+          "farm_name": "Karumbu kollai",
+          "num_trees": 152,
+          "nuts_harvested": 1510,
+          "defective_nuts": 0,
+          "good_nuts": 1510,
+          "nuts_per_tree": 9.93
+        }
+      ],
+      "sale_mode": "sold_per_pcs",
+      "sale_details": {
+        "price_per_nut": 28.0,
+        "actual_nuts_sold": 7140
+      },
+      "selling_price": 28.0,
+      "labour_cost": 6600,
+      "transport_cost": 4000,
+      "other_expenses": 680,
+      "notes": "(Bulk Entry)",
+      "logged_at": "2026-03-11T04:54:43.446543",
+      "last_edited": "2026-03-11T05:06:44.625280",
+      "nuts_harvested": 7150,
+      "defective_nuts": 0,
+      "good_nuts": 7150,
+      "nuts_per_tree": 8.45,
+      "farm_count": 7,
+      "farm_names": "Veetuvasal, Bore kollai-GR, Bore kollai-Gm, Palani veetuvasal, Nadar veetuvasal, KVR Thopu, Karumbu kollai",
+      "revenue": 199920.0,
+      "total_expenses": 11280.0,
+      "profit": 188640.0,
+      "season": "summer",
+      "next_harvest_from": "2025-07-07",
+      "next_harvest_to": "2025-07-17"
+    },
+    {
+      "harvest_id": "HRV-2026-005",
+      "harvest_date": "2025-07-26",
+      "farms": [
+        {
+          "farm_id": "FARM001",
+          "farm_name": "Veetuvasal",
+          "num_trees": 95,
+          "nuts_harvested": 950,
+          "defective_nuts": 0,
+          "good_nuts": 950,
+          "nuts_per_tree": 10.0
+        },
+        {
+          "farm_id": "FARM002",
+          "farm_name": "Bore kollai-GR",
+          "num_trees": 144,
+          "nuts_harvested": 1530,
+          "defective_nuts": 0,
+          "good_nuts": 1530,
+          "nuts_per_tree": 10.62
+        },
+        {
+          "farm_id": "FARM003",
+          "farm_name": "Bore kollai-Gm",
+          "num_trees": 144,
+          "nuts_harvested": 670,
+          "defective_nuts": 0,
+          "good_nuts": 670,
+          "nuts_per_tree": 4.65
+        },
+        {
+          "farm_id": "FARM004",
+          "farm_name": "Palani veetuvasal",
+          "num_trees": 98,
+          "nuts_harvested": 810,
+          "defective_nuts": 0,
+          "good_nuts": 810,
+          "nuts_per_tree": 8.27
+        },
+        {
+          "farm_id": "FARM005",
+          "farm_name": "Nadar veetuvasal",
+          "num_trees": 78,
+          "nuts_harvested": 970,
+          "defective_nuts": 0,
+          "good_nuts": 970,
+          "nuts_per_tree": 12.44
+        },
+        {
+          "farm_id": "FARM006",
+          "farm_name": "KVR Thopu",
+          "num_trees": 135,
+          "nuts_harvested": 970,
+          "defective_nuts": 0,
+          "good_nuts": 970,
+          "nuts_per_tree": 7.19
+        },
+        {
+          "farm_id": "FARM007",
+          "farm_name": "Karumbu kollai",
+          "num_trees": 152,
+          "nuts_harvested": 1500,
+          "defective_nuts": 0,
+          "good_nuts": 1500,
+          "nuts_per_tree": 9.87
+        }
+      ],
+      "sale_mode": "sold_per_pcs",
+      "sale_details": {
+        "price_per_nut": 35.0,
+        "actual_nuts_sold": 7400
+      },
+      "selling_price": 35.0,
+      "labour_cost": 6700,
+      "transport_cost": 3650,
+      "other_expenses": 740,
+      "notes": "(Bulk Entry)",
+      "logged_at": "2026-03-11T04:56:31.444931",
+      "last_edited": "2026-03-11T05:06:55.965373",
+      "nuts_harvested": 7400,
+      "defective_nuts": 0,
+      "good_nuts": 7400,
+      "nuts_per_tree": 8.75,
+      "farm_count": 7,
+      "farm_names": "Veetuvasal, Bore kollai-GR, Bore kollai-Gm, Palani veetuvasal, Nadar veetuvasal, KVR Thopu, Karumbu kollai",
+      "revenue": 259000.0,
+      "total_expenses": 11090.0,
+      "profit": 247910.0,
+      "season": "monsoon",
+      "next_harvest_from": "2025-09-24",
+      "next_harvest_to": "2025-10-09"
+    },
+    {
+      "harvest_id": "HRV-2026-006",
+      "harvest_date": "2025-09-19",
+      "farms": [
+        {
+          "farm_id": "FARM001",
+          "farm_name": "Veetuvasal",
+          "num_trees": 95,
+          "nuts_harvested": 720,
+          "defective_nuts": 0,
+          "good_nuts": 720,
+          "nuts_per_tree": 7.58
+        },
+        {
+          "farm_id": "FARM002",
+          "farm_name": "Bore kollai-GR",
+          "num_trees": 144,
+          "nuts_harvested": 1450,
+          "defective_nuts": 0,
+          "good_nuts": 1450,
+          "nuts_per_tree": 10.07
+        },
+        {
+          "farm_id": "FARM003",
+          "farm_name": "Bore kollai-Gm",
+          "num_trees": 144,
+          "nuts_harvested": 800,
+          "defective_nuts": 0,
+          "good_nuts": 800,
+          "nuts_per_tree": 5.56
+        },
+        {
+          "farm_id": "FARM004",
+          "farm_name": "Palani veetuvasal",
+          "num_trees": 98,
+          "nuts_harvested": 500,
+          "defective_nuts": 0,
+          "good_nuts": 500,
+          "nuts_per_tree": 5.1
+        },
+        {
+          "farm_id": "FARM005",
+          "farm_name": "Nadar veetuvasal",
+          "num_trees": 78,
+          "nuts_harvested": 750,
+          "defective_nuts": 0,
+          "good_nuts": 750,
+          "nuts_per_tree": 9.62
+        },
+        {
+          "farm_id": "FARM006",
+          "farm_name": "KVR Thopu",
+          "num_trees": 135,
+          "nuts_harvested": 1250,
+          "defective_nuts": 0,
+          "good_nuts": 1250,
+          "nuts_per_tree": 9.26
+        },
+        {
+          "farm_id": "FARM007",
+          "farm_name": "Karumbu kollai",
+          "num_trees": 152,
+          "nuts_harvested": 1220,
+          "defective_nuts": 0,
+          "good_nuts": 1220,
+          "nuts_per_tree": 8.03
+        }
+      ],
+      "sale_mode": "sold_per_pcs",
+      "sale_details": {
+        "price_per_nut": 36.5,
+        "actual_nuts_sold": 6690
+      },
+      "selling_price": 36.5,
+      "labour_cost": 6300,
+      "transport_cost": 3350,
+      "other_expenses": 1070,
+      "notes": "(Bulk Entry)",
+      "logged_at": "2026-03-11T04:58:19.978608",
+      "last_edited": "2026-03-11T05:07:11.245239",
+      "nuts_harvested": 6690,
+      "defective_nuts": 0,
+      "good_nuts": 6690,
+      "nuts_per_tree": 7.91,
+      "farm_count": 7,
+      "farm_names": "Veetuvasal, Bore kollai-GR, Bore kollai-Gm, Palani veetuvasal, Nadar veetuvasal, KVR Thopu, Karumbu kollai",
+      "revenue": 244185.0,
+      "total_expenses": 10720.0,
+      "profit": 233465.0,
+      "season": "monsoon",
+      "next_harvest_from": "2025-11-18",
+      "next_harvest_to": "2025-12-03"
+    },
+    {
+      "harvest_id": "HRV-2026-007",
+      "harvest_date": "2025-11-12",
+      "farms": [
+        {
+          "farm_id": "FARM001",
+          "farm_name": "Veetuvasal",
+          "num_trees": 95,
+          "nuts_harvested": 1100,
+          "defective_nuts": 0,
+          "good_nuts": 1100,
+          "nuts_per_tree": 11.58
+        },
+        {
+          "farm_id": "FARM002",
+          "farm_name": "Bore kollai-GR",
+          "num_trees": 144,
+          "nuts_harvested": 2100,
+          "defective_nuts": 0,
+          "good_nuts": 2100,
+          "nuts_per_tree": 14.58
+        },
+        {
+          "farm_id": "FARM003",
+          "farm_name": "Bore kollai-Gm",
+          "num_trees": 144,
+          "nuts_harvested": 1170,
+          "defective_nuts": 0,
+          "good_nuts": 1170,
+          "nuts_per_tree": 8.12
+        },
+        {
+          "farm_id": "FARM004",
+          "farm_name": "Palani veetuvasal",
+          "num_trees": 98,
+          "nuts_harvested": 770,
+          "defective_nuts": 0,
+          "good_nuts": 770,
+          "nuts_per_tree": 7.86
+        },
+        {
+          "farm_id": "FARM005",
+          "farm_name": "Nadar veetuvasal",
+          "num_trees": 78,
+          "nuts_harvested": 910,
+          "defective_nuts": 0,
+          "good_nuts": 910,
+          "nuts_per_tree": 11.67
+        },
+        {
+          "farm_id": "FARM006",
+          "farm_name": "KVR Thopu",
+          "num_trees": 135,
+          "nuts_harvested": 2150,
+          "defective_nuts": 0,
+          "good_nuts": 2150,
+          "nuts_per_tree": 15.93
+        },
+        {
+          "farm_id": "FARM007",
+          "farm_name": "Karumbu kollai",
+          "num_trees": 152,
+          "nuts_harvested": 1630,
+          "defective_nuts": 0,
+          "good_nuts": 1630,
+          "nuts_per_tree": 10.72
+        }
+      ],
+      "sale_mode": "sold_per_pcs",
+      "sale_details": {
+        "price_per_nut": 34.0,
+        "actual_nuts_sold": 9830
+      },
+      "selling_price": 34.0,
+      "labour_cost": 8700,
+      "transport_cost": 5000,
+      "other_expenses": 790,
+      "notes": "(Bulk Entry)",
+      "logged_at": "2026-03-11T04:59:30.755720",
+      "last_edited": "2026-03-11T05:07:39.240402",
+      "nuts_harvested": 9830,
+      "defective_nuts": 0,
+      "good_nuts": 9830,
+      "nuts_per_tree": 11.62,
+      "farm_count": 7,
+      "farm_names": "Veetuvasal, Bore kollai-GR, Bore kollai-Gm, Palani veetuvasal, Nadar veetuvasal, KVR Thopu, Karumbu kollai",
+      "revenue": 334220.0,
+      "total_expenses": 14490.0,
+      "profit": 319730.0,
+      "season": "post_monsoon",
+      "next_harvest_from": "2026-01-11",
+      "next_harvest_to": "2026-01-26"
+    },
+    {
+      "harvest_id": "HRV-2026-008",
+      "harvest_date": "2026-01-07",
+      "farms": [
+        {
+          "farm_id": "FARM001",
+          "farm_name": "Veetuvasal",
+          "num_trees": 95,
+          "nuts_harvested": 1430,
+          "defective_nuts": 0,
+          "good_nuts": 1430,
+          "nuts_per_tree": 15.05
+        },
+        {
+          "farm_id": "FARM002",
+          "farm_name": "Bore kollai-GR",
+          "num_trees": 144,
+          "nuts_harvested": 1920,
+          "defective_nuts": 0,
+          "good_nuts": 1920,
+          "nuts_per_tree": 13.33
+        },
+        {
+          "farm_id": "FARM003",
+          "farm_name": "Bore kollai-Gm",
+          "num_trees": 144,
+          "nuts_harvested": 1250,
+          "defective_nuts": 0,
+          "good_nuts": 1250,
+          "nuts_per_tree": 8.68
+        },
+        {
+          "farm_id": "FARM004",
+          "farm_name": "Palani veetuvasal",
+          "num_trees": 98,
+          "nuts_harvested": 1020,
+          "defective_nuts": 0,
+          "good_nuts": 1020,
+          "nuts_per_tree": 10.41
+        },
+        {
+          "farm_id": "FARM005",
+          "farm_name": "Nadar veetuvasal",
+          "num_trees": 78,
+          "nuts_harvested": 1040,
+          "defective_nuts": 0,
+          "good_nuts": 1040,
+          "nuts_per_tree": 13.33
+        },
+        {
+          "farm_id": "FARM006",
+          "farm_name": "KVR Thopu",
+          "num_trees": 135,
+          "nuts_harvested": 1800,
+          "defective_nuts": 0,
+          "good_nuts": 1800,
+          "nuts_per_tree": 13.33
+        },
+        {
+          "farm_id": "FARM007",
+          "farm_name": "Karumbu kollai",
+          "num_trees": 152,
+          "nuts_harvested": 1840,
+          "defective_nuts": 0,
+          "good_nuts": 1840,
+          "nuts_per_tree": 12.11
+        }
+      ],
+      "sale_mode": "sold_per_pcs",
+      "sale_details": {
+        "price_per_nut": 26.75,
+        "actual_nuts_sold": 10300
+      },
+      "selling_price": 26.75,
+      "labour_cost": 11900.0,
+      "transport_cost": 2000.0,
+      "other_expenses": 780.0,
+      "notes": "(Bulk Entry)",
+      "logged_at": "2026-03-11T05:29:12.994170",
+      "last_edited": "",
+      "nuts_harvested": 10300,
+      "defective_nuts": 0,
+      "good_nuts": 10300,
+      "nuts_per_tree": 12.17,
+      "farm_count": 7,
+      "farm_names": "Veetuvasal, Bore kollai-GR, Bore kollai-Gm, Palani veetuvasal, Nadar veetuvasal, KVR Thopu, Karumbu kollai",
+      "revenue": 275525.0,
+      "total_expenses": 14680.0,
+      "profit": 260845.0,
+      "season": "winter",
+      "next_harvest_from": "2026-03-08",
+      "next_harvest_to": "2026-03-23"
+    }
+  ],
+  "fertilizers": [],
+  "expenses": [],
+  "settings": {
+    "copra_dehusking_charge_per_nut": 0.8,
+    "copra_splitting_charge_per_nut": 0.5,
+    "copra_labour_charge_per_nut": 0.0,
+    "copra_removal_charge_per_nut": 0.4,
+    "copra_transport_charge_per_nut": 0.2,
+    "copra_other_charge_per_nut": 0.25,
+    "husk_selling_price_per_1000": 200.0,
+    "copra_yield_grade1_pct": 60.0,
+    "copra_yield_grade2_pct": 30.0,
+    "copra_yield_grade3_pct": 10.0,
+    "shell_weight_fraction": 0.15,
+    "copra_conversion_ratio": 0.3,
+    "weather_location": "Peravurani",
+    "harvest_interval_summer_lo": 35.0,
+    "harvest_interval_summer_hi": 45.0,
+    "harvest_interval_nonsummer_lo": 60.0,
+    "harvest_interval_nonsummer_hi": 75.0,
+    "fertilizer_interval_days": 365.0
+  },
+  "fertilizer_jobs": [],
+  "fertilizer_prices": {
+    "urea": 40.0,
+    "dap": 60.0,
+    "custom": 10000.0
+  },
+  "fertilizer_compositions": [
+    {
+      "id": "0c731087",
+      "farm_name": "",
+      "preset_name": "test",
+      "age_min_years": 10.0,
+      "age_max_years": 25.0,
+      "fertilizers": [
+        {
+          "fertilizer_type": "boron",
+          "fertilizer_label": "Boron",
+          "qty_per_tree": 0.2,
+          "unit": "kg"
+        },
+        {
+          "fertilizer_type": "dap",
+          "fertilizer_label": "DAP",
+          "qty_per_tree": 2.0,
+          "unit": "kg"
+        },
+        {
+          "fertilizer_type": "fym",
+          "fertilizer_label": "FYM (Farm Yard Manure)",
+          "qty_per_tree": 15.0,
+          "unit": "kg"
+        },
+        {
+          "fertilizer_type": "potassium_nitrate",
+          "fertilizer_label": "Potassium Nitrate",
+          "qty_per_tree": 1.0,
+          "unit": "kg"
+        },
+        {
+          "fertilizer_type": "urea",
+          "fertilizer_label": "Urea",
+          "qty_per_tree": 1.0,
+          "unit": "kg"
+        }
+      ],
+      "application_method": "",
+      "notes": "",
+      "updated_at": "2026-03-09T14:38:30.060741"
+    }
+  ],
+  "totp_secret": "XU6SDJRIOK3G66IU7HPH2I243RZEV"

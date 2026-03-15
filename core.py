@@ -193,7 +193,12 @@ def show_weather_for_location(data: dict):
 
 # ─── Data Storage ────────────────────────────────────────────────────────────
 DATA_DIR  = Path(__file__).parent
-DATA_FILE = DATA_DIR / "data.json"
+# Allow overriding the data file path via environment variable (useful for production/Docker)
+DATA_FILE_ENV = os.environ.get("COCOTRACK_DATA_PATH")
+if DATA_FILE_ENV:
+    DATA_FILE = Path(DATA_FILE_ENV)
+else:
+    DATA_FILE = DATA_DIR / "data.json"
 
 def load_data() -> dict:
     DATA_DIR.mkdir(exist_ok=True)
