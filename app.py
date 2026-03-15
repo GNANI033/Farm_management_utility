@@ -4,7 +4,7 @@ CocoTrack Web UI — Flask wrapper around core.py
 Run: python app.py  →  http://localhost:3333
 """
 from flask import Flask, render_template, request, jsonify
-import sys, os, uuid, re, secrets, json, subprocess
+import sys, os, uuid, re, secrets, json, subprocess, time, threading, webbrowser
 sys.path.insert(0, os.path.dirname(__file__))
 
 def resource_path(relative_path):
@@ -1608,6 +1608,133 @@ def save_settings_api():
     save_data(data)
     return ok(get_settings(data))
 
+# ─── Project Copra ────────────────────────────────────────────────────────────
+@app.route("/api/copra-projects", methods=["GET"])
+def get_copra_projects():
+    data = load_data()
+    projects = data.get("copra_projects", [])
+    
+    # Calculate stats
+    total_rev = 0
+    total_profit = 0
+    total_nuts = 0
+    
+    current_date = datetime.now()
+    cur_month = current_date.month
+    cur_year = current_date.year
+    prev_month = (current_date.replace(day=1) - timedelta(days=1)).month
+    prev_month_year = (current_date.replace(day=1) - timedelta(days=1)).year
+    prev_year = cur_year - 1
+    
+    m_cur_rev = 0; m_prev_rev = 0
+    m_cur_profit = 0; m_prev_profit = 0
+    m_cur_nuts = 0; m_prev_nuts = 0
+    
+    y_cur_rev = 0; y_prev_rev = 0
+    y_cur_profit = 0; y_prev_profit = 0
+    y_cur_nuts = 0; y_prev_nuts = 0
+    
+    for p in projects:
+        rev = float(p.get("revenue", 0))
+        prof = float(p.get("profit", 0))
+        nuts = int(p.get("nuts_bought", 0))
+        
+        total_rev += rev
+        total_profit += prof
+        total_nuts += nuts
+        
+        try:
+            p_date = datetime.strptime(p["date"], "%Y-%m-%d")
+            # Monthly
+            if p_date.year == cur_year and p_date.month == cur_month:
+                m_cur_rev += rev; m_cur_profit += prof; m_cur_nuts += nuts
+            elif p_date.year == prev_month_year and p_date.month == prev_month:
+                m_prev_rev += rev; m_prev_profit += prof; m_prev_nuts += nuts
+                
+            # Yearly
+            if p_date.year == cur_year:
+                y_cur_rev += rev; y_cur_profit += prof; y_cur_nuts += nuts
+            elif p_date.year == prev_year:
+                y_prev_rev += rev; y_prev_profit += prof; y_prev_nuts += nuts
+        except: pass
+
+    def get_diff(cur, prev):
+        if prev == 0: return 100 if cur > 0 else 0
+        return round(((cur - prev) / prev) * 100, 1)
+
+    stats = {
+        "total_revenue": round(total_rev, 2),
+        "total_profit": round(total_profit, 2),
+        "total_nuts": total_nuts,
+        "mom": {
+            "revenue_diff": get_diff(m_cur_rev, m_prev_rev),
+            "profit_diff": get_diff(m_cur_profit, m_prev_profit),
+            "nuts_diff": get_diff(m_cur_nuts, m_prev_nuts)
+        },
+        "yoy": {
+            "revenue_diff": get_diff(y_cur_rev, y_prev_rev),
+            "profit_diff": get_diff(y_cur_profit, y_prev_profit),
+            "nuts_diff": get_diff(y_cur_nuts, y_prev_nuts)
+        }
+    }
+    
+    return ok({"projects": projects, "stats": stats})
+
+@app.route("/api/copra-projects", methods=["POST"])
+def add_copra_project():
+    data = load_data()
+    body = request.json
+    
+    # Validation
+    if not body.get("date") or not body.get("nuts_bought"):
+        return err("Date and Nuts Bought are required", 400)
+        
+    project = {
+        "id": str(uuid.uuid4())[:8],
+        "date": body.get("date"),
+        "nuts_bought": int(body.get("nuts_bought") or 0),
+        "type": body.get("type", "dehusked"), # dehusked or whole
+        "dehusking_cost": float(body.get("dehusking_cost") or 0),
+        "husk_income": float(body.get("husk_income") or 0),
+        "shell_weight": float(body.get("shell_weight") or 0),
+        "shell_price": float(body.get("shell_price") or 0),
+        "g1_weight": float(body.get("g1_weight") or 0),
+        "g1_price": float(body.get("g1_price") or 0),
+        "g2_weight": float(body.get("g2_weight") or 0),
+        "g2_price": float(body.get("g2_price") or 0),
+        "g3_weight": float(body.get("g3_weight") or 0),
+        "g3_price": float(body.get("g3_price") or 0),
+        "purchase_cost": float(body.get("purchase_cost") or 0),
+        "logged_at": datetime.now().isoformat()
+    }
+    
+    # Calculations
+    income_shell = project["shell_weight"] * project["shell_price"]
+    income_g1 = project["g1_weight"] * project["g1_price"]
+    income_g2 = project["g2_weight"] * project["g2_price"]
+    income_g3 = project["g3_weight"] * project["g3_price"]
+    
+    total_revenue = income_shell + income_g1 + income_g2 + income_g3 + project["husk_income"]
+    total_expenses = project["purchase_cost"] + project["dehusking_cost"]
+    project["revenue"] = round(total_revenue, 2)
+    project["expenses"] = round(total_expenses, 2)
+    project["profit"] = round(total_revenue - total_expenses, 2)
+    
+    data.setdefault("copra_projects", []).append(project)
+    save_data(data)
+    return ok(project)
+
+@app.route("/api/copra-projects/<project_id>", methods=["DELETE"])
+def delete_copra_project(project_id):
+    data = load_data()
+    projects = data.get("copra_projects", [])
+    new_projects = [p for p in projects if p["id"] != project_id]
+    if len(new_projects) == len(projects):
+        return err("Project not found", 404)
+    data["copra_projects"] = new_projects
+    save_data(data)
+    return ok({"deleted": project_id})
+
 # ─── Stats / Predictions ──────────────────────────────────────────────────────
 @app.route("/api/coconut-prices/refresh", methods=["POST"])
 def refresh_coconut_prices():
@@ -1655,7 +1782,20 @@ def get_stats():
     harvest_expenses = round(sum(float(h.get("total_expenses", 0) or 0) for h in harvests), 2)
     fertilizer_expenses = _sum_fertilizer_expenses(data)
     other_expenses = _sum_other_expenses(data)
-    total_expenses = round(harvest_expenses + fertilizer_expenses + other_expenses, 2)
+    
+    # Optionally include Copra Projects
+    settings = get_settings(data)
+    include_copra = settings.get("include_copra_projects_in_dashboard", 0.0) > 0.5
+    
+    copra_revenue = 0
+    copra_expenses = 0
+    if include_copra:
+        for p in data.get("copra_projects", []):
+            copra_revenue += float(p.get("revenue", 0))
+            copra_expenses += float(p.get("expenses", 0))
+            
+    total_revenue = round(total_revenue + copra_revenue, 2)
+    total_expenses = round(harvest_expenses + fertilizer_expenses + other_expenses + copra_expenses, 2)
     total_profit = round(total_revenue - total_expenses, 2)
     net_return_pct = round((total_profit / total_revenue) * 100, 2) if total_revenue > 0 else 0.0
     expense_insights = _build_expense_insights(data)
@@ -1680,34 +1820,32 @@ def get_stats():
 
 # Track active sessions to auto-shutdown when browser is closed
 LAST_HEARTBEAT = time.time()
-SHUTDOWN_TIMEOUT = 12  # Seconds before shutting down if no heartbeat
+SHUTDOWN_TIMEOUT = 300  # 5 minutes - very safe buffer
 IDLE_SHUTDOWN_ENABLED = True
 
 @app.route('/api/heartbeat', methods=['POST'])
 def heartbeat():
     global LAST_HEARTBEAT
     LAST_HEARTBEAT = time.time()
+    # print("Heartbeat received") # Debug log
     return jsonify({"ok": True})
 
 
 def shutdown_watchdog():
     """Background thread that shuts down the app if no heartbeat is received."""
     global LAST_HEARTBEAT
-    # Giving extra time at startup
-    time.sleep(15) 
+    # Giving plenty of time (1 minute) at startup
+    time.sleep(60) 
     while IDLE_SHUTDOWN_ENABLED:
-        time.sleep(5)
-        if time.time() - LAST_HEARTBEAT > SHUTDOWN_TIMEOUT:
-            print("\n[!] No active browser tab detected. Shutting down CocoTrack...")
+        time.sleep(15)
+        current_idle = time.time() - LAST_HEARTBEAT
+        if current_idle > SHUTDOWN_TIMEOUT:
+            print(f"\n[!] No active browser tab detected for {int(current_idle)}s. Shutting down...")
             os._exit(0)
 
 if __name__ == "__main__":
     import multiprocessing
     multiprocessing.freeze_support()
-    import webbrowser
-    import threading
-    import time
-    import os
 
     def open_browser():
         # Wait a moment for server to start

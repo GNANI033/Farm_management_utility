@@ -949,5 +949,6 @@
       "updated_at": "2026-03-09T14:38:30.060741"
     }
   ],
-  "totp_secret": "XU6SDJRIOK3G66IU7HPH2I243RZEV"
-}
+  "totp_secret": "XU6SDJRIOK3G66IU7HPH2I243RZEV",
+  "copra_projects": []
+}

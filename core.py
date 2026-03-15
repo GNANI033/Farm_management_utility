@@ -714,6 +714,8 @@ DEFAULT_SETTINGS = {
     "harvest_interval_nonsummer_hi": 50.0,
     # Fertilizer reapplication cycle (days)
     "fertilizer_interval_days": 365.0,
+    # Dashboard inclusion setting
+    "include_copra_projects_in_dashboard": 0.0, # 0.0 for False, 1.0 for True
 }
 def get_settings(data: dict) -> dict:
     s = DEFAULT_SETTINGS.copy()
