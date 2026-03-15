@@ -1846,8 +1846,9 @@ def get_stats():
 
 if __name__ == "__main__":
     print("\nCocoTrack Web UI starting...")
-    target_host = os.environ.get("HOST", "100.97.107.183")
+    # Using 0.0.0.0 to listen on all available network interfaces
+    target_host = "0.0.0.0"
     target_port = int(os.environ.get("PORT", 443))
-    print(f"   Open http://{target_host}:{target_port} in your browser\n")
+    print(f"   Open http://100.97.107.183:{target_port} in your browser\n")
     app.run(debug=False, host=target_host, port=target_port)
 
